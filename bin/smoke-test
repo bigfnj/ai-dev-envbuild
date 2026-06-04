@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# smoke-test — exercise the installed environment to confirm a build is healthy.
+#
+# Stronger than `devtools check` (which only checks that a binary file exists):
+# this RUNS each manifest tool's detect command, then runs a few functional
+# cross-tool checks (compile + run C, create a uv venv, run TypeScript via tsx,
+# docker run hello-world). Core-tool failures make the script exit non-zero so
+# it can gate a fresh-machine provision or CI; optional-tool failures are warnings.
+#
+# Not -e: we want to run every check and tally, not abort on the first failure.
+set -uo pipefail
+
+SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_ROOT="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
+MANIFEST="$REPO_ROOT/manifest/tools.json"
+export PATH="$HOME/.local/bin:$HOME/tools/bin:$HOME/.cargo/bin:$PATH"
+
+_c()  { if [ -t 1 ]; then printf '\033[%sm' "$1"; fi; }
+PASS=0; FAIL=0; WARN=0
+ok()   { printf '%s✓%s %s\n' "$(_c 32)" "$(_c 0)" "$*"; PASS=$((PASS+1)); }
+fail() { printf '%s✗%s %s\n' "$(_c 31)" "$(_c 0)" "$*"; FAIL=$((FAIL+1)); }
+warn() { printf '%s⚠%s %s\n' "$(_c 33)" "$(_c 0)" "$*"; WARN=$((WARN+1)); }
+hdr()  { printf '\n%s== %s ==%s\n' "$(_c 1)" "$*" "$(_c 0)"; }
+
+[ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
+
+# ── Phase 1: run every manifest tool's detect command ─────────────────────────
+hdr "manifest tools (running detect commands)"
+while IFS=$'\t' read -r name detect status; do
+    if timeout 60 bash -c "$detect" >/dev/null 2>&1; then
+        ok "$name"
+    elif [ "$status" = "optional" ]; then
+        warn "$name — detect failed (optional)"
+    else
+        fail "$name — detect failed: $detect"
+    fi
+done < <(jq -r '.[] | "\(.name)\t\(.detect)\t\(.status)"' "$MANIFEST")
+
+# ── Phase 2: functional cross-tool checks ─────────────────────────────────────
+hdr "functional checks"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+
+# C toolchain: compile and run.
+if command -v gcc >/dev/null 2>&1; then
+    printf '#include <stdio.h>\nint main(void){puts("ok");return 0;}\n' > "$tmp/h.c"
+    if gcc "$tmp/h.c" -o "$tmp/h" 2>/dev/null && [ "$("$tmp/h" 2>/dev/null)" = "ok" ]; then
+        ok "gcc compiles and runs a C program"
+    else
+        fail "gcc could not compile/run a trivial C program"
+    fi
+else
+    warn "gcc not present — skipping C check"
+fi
+
+# uv: create a project virtual environment.
+if command -v uv >/dev/null 2>&1; then
+    if uv venv "$tmp/venv" >/dev/null 2>&1 && [ -x "$tmp/venv/bin/python" ]; then
+        ok "uv creates a project venv"
+    else
+        fail "uv could not create a venv"
+    fi
+else
+    warn "uv not present — skipping venv check"
+fi
+
+# tsx: run a TypeScript one-liner.
+if command -v tsx >/dev/null 2>&1; then
+    echo 'const m: string = "ok"; console.log(m);' > "$tmp/s.ts"
+    if [ "$(tsx "$tmp/s.ts" 2>/dev/null)" = "ok" ]; then
+        ok "tsx runs TypeScript directly"
+    else
+        fail "tsx could not run a TypeScript file"
+    fi
+else
+    warn "tsx not present — skipping TypeScript check"
+fi
+
+# Docker: run hello-world if the daemon is reachable (needs daemon + group).
+if command -v docker >/dev/null 2>&1; then
+    if docker info >/dev/null 2>&1; then
+        if docker run --rm hello-world >/dev/null 2>&1; then
+            ok "docker runs a container (hello-world)"
+        else
+            fail "docker daemon reachable but 'docker run' failed"
+        fi
+    else
+        warn "docker present but daemon unreachable — re-login for the docker group, or start dockerd (not a build failure)"
+    fi
+else
+    warn "docker not present — skipping container check"
+fi
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+hdr "summary"
+printf '%s%d passed%s, %s%d warnings%s, %s%d failed%s\n' \
+    "$(_c 32)" "$PASS" "$(_c 0)" "$(_c 33)" "$WARN" "$(_c 0)" "$(_c 31)" "$FAIL" "$(_c 0)"
+[ "$FAIL" -eq 0 ] || { echo "SMOKE TEST FAILED"; exit 1; }
+echo "smoke test passed"

@@ -38,7 +38,7 @@
     "group": "core",
     "scope": "global",
     "install_method": "apt",
-    "detect": "unzip --version",
+    "detect": "unzip -v",
     "status": "core",
     "notes": "",
     "last_verified": "2026-06-04"
@@ -280,7 +280,7 @@
     "group": "core",
     "scope": "global",
     "install_method": "apt",
-    "detect": "tmux --version",
+    "detect": "tmux -V",
     "status": "core",
     "notes": "",
     "last_verified": "2026-06-04"
@@ -291,7 +291,7 @@
     "group": "core",
     "scope": "global",
     "install_method": "apt",
-    "detect": "entr --version",
+    "detect": "command -v entr",
     "status": "core",
     "notes": "",
     "last_verified": "2026-06-04"
@@ -302,7 +302,7 @@
     "group": "core",
     "scope": "global",
     "install_method": "apt",
-    "detect": "socat --version",
+    "detect": "socat -V",
     "status": "core",
     "notes": "",
     "last_verified": "2026-06-04"

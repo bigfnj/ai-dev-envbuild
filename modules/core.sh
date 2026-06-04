@@ -84,12 +84,18 @@ core_record_manifest() {
         "socat:socat" "htop:htop" "btop:btop" "shellcheck:shellcheck"
         "shfmt:shfmt" "tokei:tokei"
     )
-    local pair name bin
+    local pair name bin detect
     for pair in "${pairs[@]}"; do
         name="${pair%%:*}"; bin="${pair##*:}"
-        if has "$bin"; then
-            manifest_add "$name" "$bin" "core" "global" "apt" "$bin --version" "core" ""
-        fi
+        has "$bin" || continue
+        # Most tools answer `--version`; a few use a different flag or none.
+        case "$bin" in
+            unzip)        detect="unzip -v" ;;
+            tmux|socat)   detect="$bin -V" ;;
+            entr)         detect="command -v entr" ;;
+            *)            detect="$bin --version" ;;
+        esac
+        manifest_add "$name" "$bin" "core" "global" "apt" "$detect" "core" ""
     done
     log_ok "manifest updated — $MANIFEST"
 }
