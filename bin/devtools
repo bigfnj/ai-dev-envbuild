@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# devtools — inspect the dev environment. The agent-discoverability interface.
+#
+#   devtools report   human-readable inventory from manifest/tools.json
+#   devtools check    verify every manifest tool is actually present (drift)
+#   devtools doctor   environment health (PATH, shellrc, runtimes, docker, WSL)
+#
+# Self-locating: resolves the manifest relative to this script's real path, so
+# it works whether invoked directly or via the ~/tools/bin/devtools symlink.
+# Read-only — never installs anything; that's bootstrap.sh's job.
+set -euo pipefail
+
+SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_ROOT="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
+MANIFEST="$REPO_ROOT/manifest/tools.json"
+
+# Look where the bootstrap installs things, regardless of the caller's PATH.
+export PATH="$HOME/.local/bin:$HOME/tools/bin:$HOME/.cargo/bin:$PATH"
+
+_c()   { if [ -t 1 ]; then printf '\033[%sm' "$1"; fi; }
+ok()   { printf '%s✓%s %s\n' "$(_c 32)" "$(_c 0)" "$*"; }
+warn() { printf '%s⚠%s %s\n' "$(_c 33)" "$(_c 0)" "$*"; }
+info() { printf '%s•%s %s\n' "$(_c 90)" "$(_c 0)" "$*"; }
+bad()  { printf '%s✗%s %s\n' "$(_c 31)" "$(_c 0)" "$*"; }
+
+require_manifest() {
+    [ -f "$MANIFEST" ] || { bad "manifest not found: $MANIFEST"; exit 1; }
+}
+
+cmd_report() {
+    require_manifest
+    local total; total="$(jq 'length' "$MANIFEST")"
+    printf '%sDev environment inventory%s  (%s tools)\n' "$(_c 1)" "$(_c 0)" "$total"
+    jq -r '
+        group_by(.group)[]
+        | "\n" + (.[0].group | ascii_upcase) + ":",
+          ( .[]
+            | "  " + ((.name + "                    ")[0:20])
+                   + " " + (("[" + .scope + "]" + "               ")[0:15])
+                   + " " + .install_method
+                   + "  — " + .notes )
+    ' "$MANIFEST"
+}
+
+cmd_check() {
+    require_manifest
+    local total=0 missing=0 name binary
+    while IFS=$'\t' read -r name binary; do
+        total=$((total + 1))
+        if ! command -v "$binary" >/dev/null 2>&1; then
+            bad "MISSING  $name  (binary: $binary)"
+            missing=$((missing + 1))
+        fi
+    done < <(jq -r '.[] | "\(.name)\t\(.binary)"' "$MANIFEST")
+    if [ "$missing" -eq 0 ]; then
+        ok "all $total manifest tools present"
+    else
+        warn "$missing of $total manifest tools missing (see above)"
+        return 1
+    fi
+}
+
+cmd_doctor() {
+    local issues=0
+    # PATH (use resolved paths in messages so the labels are unambiguous)
+    local localbin="$HOME/.local/bin" toolsbin="$HOME/tools/bin"
+    case ":$PATH:" in *":$localbin:"*) ok "$localbin on PATH";; *) warn "$localbin NOT on PATH"; issues=$((issues+1));; esac
+    case ":$PATH:" in *":$toolsbin:"*) ok "$toolsbin on PATH";; *) warn "$toolsbin NOT on PATH"; issues=$((issues+1));; esac
+    # shellrc wiring
+    if grep -q 'tools/shellrc.sh' "$HOME/.bashrc" 2>/dev/null; then ok ".bashrc sources ~/tools/shellrc.sh"; else warn ".bashrc does not source ~/tools/shellrc.sh"; issues=$((issues+1)); fi
+    # rust env (optional)
+    if [ -f "$HOME/.cargo/env" ]; then ok "rust toolchain env present"; else info "no rust env (rustup not installed)"; fi
+    # WSL filesystem location
+    case "$PWD" in
+        /mnt/*) warn "cwd is under $PWD (Windows filesystem) — slow I/O + broken file-watchers; prefer ~/projects"; issues=$((issues+1));;
+        *)      ok "cwd is on the Linux filesystem";;
+    esac
+    # docker daemon
+    if command -v docker >/dev/null 2>&1; then
+        if docker info >/dev/null 2>&1; then ok "docker daemon reachable"; else warn "docker installed but daemon unreachable (start it, or re-login for the docker group)"; issues=$((issues+1)); fi
+    fi
+    # manifest drift
+    if [ -f "$MANIFEST" ]; then
+        if cmd_check >/dev/null 2>&1; then ok "manifest matches reality"; else warn "manifest drift — run 'devtools check'"; issues=$((issues+1)); fi
+    fi
+    echo
+    if [ "$issues" -eq 0 ]; then ok "environment healthy"; else warn "$issues issue(s) found"; return 1; fi
+}
+
+usage() {
+    cat <<EOF
+devtools — inspect the dev environment (read-only)
+
+  devtools report   human-readable tool inventory (from the manifest)
+  devtools check    verify every manifest tool is installed (drift detection)
+  devtools doctor   environment health: PATH, shellrc, runtimes, docker, WSL
+EOF
+}
+
+case "${1:-}" in
+    report) cmd_report;;
+    check)  cmd_check;;
+    doctor) cmd_doctor;;
+    ""|-h|--help|help) usage;;
+    *) bad "unknown command: $1"; usage; exit 1;;
+esac

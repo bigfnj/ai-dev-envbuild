@@ -10,8 +10,21 @@ core_install() {
     core_layout
     core_packages
     core_binary_aliases
+    core_link_repo_bins
     core_write_shellrc
     core_record_manifest
+}
+
+# Link the repo's bin/ scripts (devtools, …) into ~/tools/bin so they're on
+# PATH. Symlinks point back at the repo, so a `git pull` updates them in place.
+core_link_repo_bins() {
+    local f name
+    for f in "$REPO_ROOT"/bin/*; do
+        [ -f "$f" ] || continue
+        name="$(basename "$f")"
+        ln -sf "$f" "$HOME/tools/bin/$name"
+        log_ok "linked $name -> repo bin/"
+    done
 }
 
 # Base home-directory layout the rest of the environment assumes.
