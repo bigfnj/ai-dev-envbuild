@@ -133,8 +133,9 @@ managers manage their own (e.g. `~/.cargo/bin`).
 edit the right `modules/<group>.sh` — install it in `*_install` (guarded with
 `has`) and record it in `*_record_manifest` (`manifest_add …`, guarded with
 `if has <bin>`); then **run `./bootstrap.sh --only <group>`** to install it and
-regenerate the manifest (never hand-edit `manifest/tools.json`); then
-`devtools check`; then commit + push so other machines get it via
+regenerate the manifest (never hand-edit `manifest/tools.json`); then **gate the
+push on a green `devtools check` AND `smoke-test`** (a red smoke-test is a broken
+build — fix before pushing); only then commit + push so other machines get it via
 `git pull && ./bootstrap.sh`.
 
 **Add a whole new group:** drop a `modules/<name>.sh` defining `<name>_desc` and

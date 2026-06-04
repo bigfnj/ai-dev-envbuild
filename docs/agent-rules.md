@@ -59,12 +59,14 @@ consistent:
      `status` = `core` | `optional` | `experimental` | `isolated`;
      `detect` = a command that exits 0 when the tool works (usually
      `<bin> --version`; use `command -v <bin>` if it has no version flag).
-3. **Apply it:** `./bootstrap.sh --only <group>` — this installs the tool AND
+3. **Apply it:** `./bootstrap.sh --only <group>` — installs the tool AND
    regenerates the manifest. Editing the module without running it leaves the
-   manifest stale and `devtools check` will report drift.
-4. **Verify:** `devtools check` (no drift); run `smoke-test` if it's worth
-   exercising end-to-end.
-5. **Commit + push** so other workstations get it:
+   manifest stale.
+4. **Gate — both MUST pass before you push anything:**
+   - `devtools check` — no manifest drift.
+   - `smoke-test` — must exit 0. It exercises the toolchain end-to-end; a core
+     failure means a broken build. Do not push a red smoke-test; fix it first.
+5. **Only after step 4 is green, commit + push** so other workstations get it:
    `git add -A && git commit && git push`. Other machines pick it up with
    `git pull && ./bootstrap.sh`.
 
@@ -75,5 +77,6 @@ consistent:
   manage their own (e.g. `~/.cargo/bin`).
 - Don't install large optional stacks by default — `optional-heavy` and
   `optional-gpu` are explicit opt-in groups.
+- Don't push a change without a green `smoke-test` — it's the build gate.
 - Don't duplicate a tool that's already in the manifest under a different
   install method.
