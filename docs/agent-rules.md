@@ -54,9 +54,7 @@ consistent:
      CLI) · `npm_global <pkg>` (global Node CLI) · or a guarded download into
      `~/tools/bin`.
    - Record it in the group's `*_record_manifest`, guarded with `if has <bin>`:
-     ```
-     manifest_add <name> <binary> <group> <scope> <install_method> "<detect>" <status> "<notes>"
-     ```
+     `manifest_add <name> <binary> <group> <scope> <install_method> "<detect>" <status> "<notes>"`.
      `scope` = `global` | `project-local` | `container`;
      `status` = `core` | `optional` | `experimental` | `isolated`;
      `detect` = a command that exits 0 when the tool works (usually
