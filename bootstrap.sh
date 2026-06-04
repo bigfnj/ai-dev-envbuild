@@ -97,6 +97,10 @@ main() {
         esac
     done
 
+    # Make tools installed earlier in this run (pipx apps, ~/tools/bin links)
+    # usable by later modules in the same process, before shellrc is sourced.
+    export PATH="$HOME/.local/bin:$HOME/tools/bin:$PATH"
+
     ensure_dir "$LOG_DIR"
     local logfile
     logfile="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"

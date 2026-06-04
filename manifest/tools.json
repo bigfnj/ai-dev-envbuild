@@ -361,5 +361,71 @@
     "status": "core",
     "notes": "",
     "last_verified": "2026-06-04"
+  },
+  {
+    "name": "python3",
+    "binary": "python3",
+    "group": "python",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "python3 --version",
+    "status": "core",
+    "notes": "system Python (Debian-managed; never pip-install into it)",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "pipx",
+    "binary": "pipx",
+    "group": "python",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "pipx --version",
+    "status": "core",
+    "notes": "manages global Python CLIs in isolated venvs",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "uv",
+    "binary": "uv",
+    "group": "python",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "uv --version",
+    "status": "core",
+    "notes": "project deps + Python versions (uv python install)",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "ruff",
+    "binary": "ruff",
+    "group": "python",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "ruff --version",
+    "status": "core",
+    "notes": "linter + formatter; replaces black/flake8",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "ipython",
+    "binary": "ipython",
+    "group": "python",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "ipython --version",
+    "status": "core",
+    "notes": "interactive REPL",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "jupyterlab",
+    "binary": "jupyter-lab",
+    "group": "python",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "jupyter-lab --version",
+    "status": "core",
+    "notes": "launch with 'jupyter-lab'; project kernels stay local",
+    "last_verified": "2026-06-04"
   }
 ]

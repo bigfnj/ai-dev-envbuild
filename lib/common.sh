@@ -48,6 +48,20 @@ apt_install() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}"
 }
 
+# pipx_install <package> — install a global Python CLI via pipx, idempotently.
+# pipx isolates each app in its own venv under ~/.local/share/pipx and links the
+# entry point into ~/.local/bin (already on PATH). Skips if already installed.
+pipx_install() {
+    local pkg="$1"
+    has pipx || { log_err "pipx not installed; cannot pipx_install $pkg"; return 1; }
+    if pipx list --short 2>/dev/null | awk '{print $1}' | grep -qx "$pkg"; then
+        log_skip "pipx: $pkg already installed"
+        return 0
+    fi
+    log_info "pipx install $pkg"
+    pipx install "$pkg"
+}
+
 # ── Filesystem / shell config ─────────────────────────────────────────────────
 ensure_dir() { [ -d "$1" ] && return 0; mkdir -p "$1"; log_ok "mkdir $1"; }
 

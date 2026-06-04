@@ -44,7 +44,7 @@ in exactly one layer — that is the rule that prevents duplication.
 | Layer | Owner / install method | What lives here | Examples |
 |---|---|---|---|
 | **System** | `apt` (+ vendor apt repos) | Stable OS packages, durable CLI tools, compilers, build system | git, gcc/clang, ripgrep, jq, ffmpeg, tshark |
-| **Runtimes** | Version managers / vendor installers | Language toolchains, kept off `apt`'s stale versions | Node (NodeSource), Rust (rustup), Go, .NET, pyenv |
+| **Runtimes** | Version managers / vendor installers | Language toolchains, kept off `apt`'s stale versions | Node (NodeSource), Rust (rustup), Go, .NET; Python versions via `uv` |
 | **Global Python CLI** | `pipx` | Python *applications* used across projects, each in its own venv | ruff, jupyterlab, csvkit, frida |
 | **Project-local** | `uv` / `pnpm` / `cargo` / etc. | All libraries and frameworks | pandas, flask, pytorch, react, scrapy |
 | **Containers** | Docker / devcontainers | Heavy, risky, or version-pinned stacks | ML/CUDA, untrusted RE samples, client repros |
@@ -53,6 +53,12 @@ in exactly one layer — that is the rule that prevents duplication.
 manager, system `pip` is never used directly.** This is the single most
 important rule for keeping Python sane. Agents are told this explicitly in
 `agent-rules.md`.
+
+**Decision: no `pyenv`.** `uv` installs and manages Python versions itself
+(`uv python install 3.x`) from prebuilt standalone builds — no compilation, no
+build dependencies. Running pyenv alongside uv would duplicate version
+management, which is precisely the duplication the spec forbids. uv is the one
+owner of Python versions and project environments.
 
 **Decision: language runtimes come from version managers / vendor repos, not
 `apt`.** Debian stable ships old toolchains; rustup/NodeSource/pyenv give
@@ -110,7 +116,9 @@ The boundary, stated as rules an agent can follow mechanically:
   directory (ruff, rg, ffmpeg, jq) may be global. A library you `import`
   belongs in a project.
 - **Python libraries → `uv` in a project `.venv`.** Never `pip install` into
-  system Python. Never `pipx` a library.
+  system Python. Never `pipx` a library. **`pytest`, `mypy`, and other dev
+  tools belong here too** (`uv add --dev`), not global — a global `pytest`
+  can't import the project's deps or plugins.
 - **Node packages → local `node_modules` via `pnpm`.** Only `tsx` and `pnpm`
   itself are global.
 - **Heavy/conflicting/risky → container.** PyTorch+CUDA, an untrusted binary,
@@ -130,7 +138,7 @@ explicit flag.
 | Group | Default? | Contents |
 |---|---|---|
 | `core` | ✅ | apt CLI tools, build-essential, shell utilities, PATH + folder setup |
-| `python` | ✅ | pyenv, pipx, uv, ruff, ipython, jupyterlab, pytest, mypy |
+| `python` | ✅ | pipx, uv (also installs Python versions), ruff, ipython, jupyterlab |
 | `node` | ✅ | NodeSource Node.js, pnpm, tsx |
 | `languages` | ✅ | Rust (rustup), Go, .NET SDK, OpenJDK |
 | `reverse` | ✅ | radare2, binwalk, exiftool, tshark, foremost, **dosbox-x (headless)**, Ghidra (+ Windows note) |
