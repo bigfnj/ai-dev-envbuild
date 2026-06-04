@@ -790,5 +790,38 @@
     "status": "core",
     "notes": "Dev Containers CLI",
     "last_verified": "2026-06-04"
+  },
+  {
+    "name": "qemu-system",
+    "binary": "qemu-system-x86_64",
+    "group": "optional-heavy",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "qemu-system-x86_64 --version",
+    "status": "optional",
+    "notes": "full-system emulation (multiple arches)",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "qemu-utils",
+    "binary": "qemu-img",
+    "group": "optional-heavy",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "qemu-img --version",
+    "status": "optional",
+    "notes": "disk-image tooling (qemu-img, …)",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "nvidia-smi",
+    "binary": "nvidia-smi",
+    "group": "optional-gpu",
+    "scope": "global",
+    "install_method": "windows-host-driver",
+    "detect": "nvidia-smi -L",
+    "status": "optional",
+    "notes": "GPU passthrough from Windows host driver; CUDA toolkit/ML libs are project/container scoped",
+    "last_verified": "2026-06-04"
   }
 ]
