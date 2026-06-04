@@ -471,5 +471,82 @@
     "status": "core",
     "notes": "run TypeScript files directly, no build step",
     "last_verified": "2026-06-04"
+  },
+  {
+    "name": "rust",
+    "binary": "cargo",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "rustup",
+    "detect": "cargo --version",
+    "status": "core",
+    "notes": "rustup toolchain: cargo, rustc, rustfmt, clippy",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "rustfmt",
+    "binary": "rustfmt",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "rustup",
+    "detect": "rustfmt --version",
+    "status": "core",
+    "notes": "Rust formatter (rustup component)",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "clippy",
+    "binary": "cargo-clippy",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "rustup",
+    "detect": "cargo-clippy --version",
+    "status": "core",
+    "notes": "Rust linter — run via 'cargo clippy'",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "go",
+    "binary": "go",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "go version",
+    "status": "core",
+    "notes": "Go toolchain (incl. gofmt) — trixie apt",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "openjdk",
+    "binary": "java",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "java --version",
+    "status": "core",
+    "notes": "OpenJDK (default-jdk) — trixie apt",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "maven",
+    "binary": "mvn",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "mvn --version",
+    "status": "core",
+    "notes": "build tool; Gradle uses ./gradlew per project",
+    "last_verified": "2026-06-04"
+  },
+  {
+    "name": "dotnet",
+    "binary": "dotnet",
+    "group": "languages",
+    "scope": "global",
+    "install_method": "microsoft-apt",
+    "detect": "dotnet --version",
+    "status": "core",
+    "notes": ".NET SDK via Microsoft feed",
+    "last_verified": "2026-06-04"
   }
 ]
