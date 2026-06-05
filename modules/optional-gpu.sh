@@ -41,10 +41,31 @@ globally):
      - Project Python GPU libs still go in a project .venv via uv, e.g.:
          uv add torch --index https://download.pytorch.org/whl/cu124
 
+  3. SDXL dedicated inpainting checkpoint (~7 GB, optional)
+     stable-diffusion-xl-1.0-inpainting-0.1 has a 9-channel UNet trained
+     specifically for clean mask seams. Worth pulling only if standard-model
+     inpainting leaves edges you cannot feather away:
+
+         cd ~/projects/myai/hyperreal
+         uv run huggingface-cli download diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+
+     Re-run ./bootstrap.sh --only optional-gpu after downloading to register
+     it in the manifest.
+
 GUIDE
 
     if has nvidia-smi; then
         manifest_add nvidia-smi nvidia-smi optional-gpu global windows-host-driver "nvidia-smi -L" optional "GPU passthrough from Windows host driver; CUDA toolkit/ML libs are project/container scoped"
+        _optional_gpu_record_sdxl_inpaint
         log_ok "manifest updated — optional-gpu group"
+    fi
+}
+
+_optional_gpu_record_sdxl_inpaint() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--diffusers--stable-diffusion-xl-1.0-inpainting-0.1"
+    if [ -d "$hf_dir" ]; then
+        manifest_add sdxl-inpaint-checkpoint sdxl-inpaint optional-gpu container huggingface \
+            "test -d $hf_dir" optional \
+            "SDXL inpainting checkpoint (~7 GB, 9-ch UNet); clean mask seams vs standard inpainting. Download: cd ~/projects/myai/hyperreal && uv run huggingface-cli download diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
     fi
 }
