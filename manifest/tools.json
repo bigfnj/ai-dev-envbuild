@@ -877,7 +877,7 @@
     "detect": "nvidia-smi -L",
     "status": "optional",
     "notes": "GPU passthrough from Windows host driver; CUDA toolkit/ML libs are project/container scoped",
-    "last_verified": "2026-06-04"
+    "last_verified": "2026-06-05"
   },
   {
     "name": "sshpass",
@@ -899,6 +899,17 @@
     "detect": "expect -version",
     "status": "core",
     "notes": "scripted interactive CLI automation",
+    "last_verified": "2026-06-05"
+  },
+  {
+    "name": "sdxl-inpaint-checkpoint",
+    "binary": "sdxl-inpaint",
+    "group": "optional-gpu",
+    "scope": "container",
+    "install_method": "huggingface",
+    "detect": "sdxl-inpaint",
+    "status": "optional",
+    "notes": "SDXL inpainting checkpoint (~7 GB, 9-ch UNet); clean mask seams vs standard inpainting. Download: cd ~/projects/myai/hyperreal && uv run hf download diffusers/stable-diffusion-xl-1.0-inpainting-0.1",
     "last_verified": "2026-06-05"
   }
 ]

@@ -47,7 +47,7 @@ globally):
      inpainting leaves edges you cannot feather away:
 
          cd ~/projects/myai/hyperreal
-         uv run huggingface-cli download diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+         uv run hf download diffusers/stable-diffusion-xl-1.0-inpainting-0.1
 
      Re-run ./bootstrap.sh --only optional-gpu after downloading to register
      it in the manifest.
@@ -64,8 +64,16 @@ GUIDE
 _optional_gpu_record_sdxl_inpaint() {
     local hf_dir="$HOME/.cache/huggingface/hub/models--diffusers--stable-diffusion-xl-1.0-inpainting-0.1"
     if [ -d "$hf_dir" ]; then
+        # Write a presence-check shim so devtools check (command -v) and
+        # smoke-test can both verify the checkpoint with a real binary.
+        local shim="$HOME/tools/bin/sdxl-inpaint"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
         manifest_add sdxl-inpaint-checkpoint sdxl-inpaint optional-gpu container huggingface \
-            "test -d $hf_dir" optional \
-            "SDXL inpainting checkpoint (~7 GB, 9-ch UNet); clean mask seams vs standard inpainting. Download: cd ~/projects/myai/hyperreal && uv run huggingface-cli download diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
+            "sdxl-inpaint" optional \
+            "SDXL inpainting checkpoint (~7 GB, 9-ch UNet); clean mask seams vs standard inpainting. Download: cd ~/projects/myai/hyperreal && uv run hf download diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
     fi
 }
