@@ -5,9 +5,10 @@
 #
 # Tools: imagemagick, ffmpeg, Pillow (ipython-injected), rembg (bg removal),
 # realesrgan-ncnn-vulkan (AI upscaling + anime), pngquant/optipng (PNG opt),
-# gifsicle (GIF), webp (WebP encode/decode), jpegoptim (JPEG opt), heif (HEIF/AVIF).
+# gifsicle (GIF), webp (WebP encode/decode), jpegoptim (JPEG opt), heif (HEIF/AVIF),
+# huggingface-cli/hf (model download + repo management).
 
-image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), format tools (png/gif/webp/jpeg/heif)"; }
+image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), hf (HuggingFace CLI), format tools (png/gif/webp/jpeg/heif)"; }
 
 image_install() {
     apt_install imagemagick ffmpeg
@@ -15,6 +16,7 @@ image_install() {
     image_pillow
     image_rembg
     image_realesrgan
+    image_hf
     image_record_manifest
 }
 
@@ -97,6 +99,20 @@ image_realesrgan() {
     fi
 }
 
+# huggingface-cli (hf) — model download, upload, and repo management.
+# Pure-Python HTTP client; no CUDA/torch dependency. Works machine-wide without
+# a project venv, which is why it's global rather than project-local like the
+# ML stacks it supports. Also installs the `tiny-agents` entry point.
+image_hf() {
+    if has hf; then
+        log_skip "hf (huggingface-cli) already installed"
+        return 0
+    fi
+    if is_dry_run; then log_info "[DRY-RUN] would pipx install huggingface_hub[cli]"; return 0; fi
+    log_info "pipx install huggingface_hub[cli]"
+    pipx install "huggingface_hub[cli]"
+}
+
 image_record_manifest() {
     local im=""
     if has magick; then im=magick; elif has convert; then im=convert; fi
@@ -126,6 +142,11 @@ image_record_manifest() {
             "command -v realesrgan-ncnn-vulkan" core \
             "AI upscaling + anime conversion: models x4plus (photos), x4plus-anime, animevideov3, x4plus-fast; GPU (Vulkan) or CPU" \
             "" "xinntao/Real-ESRGAN-ncnn-vulkan"
+    fi
+    if has hf; then
+        manifest_add huggingface-cli hf image global pipx \
+            "hf --help" core \
+            "HuggingFace model/dataset/repo management (hf download, hf upload, hf whoami, hf models ls); also installs tiny-agents"
     fi
     log_ok "manifest updated — image group"
 }

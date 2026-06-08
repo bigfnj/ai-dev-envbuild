@@ -1312,5 +1312,19 @@
     "installed_version": "",
     "compat_requires": [],
     "source_repo": ""
+  },
+  {
+    "name": "huggingface-cli",
+    "binary": "hf",
+    "group": "image",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "hf --help",
+    "status": "core",
+    "notes": "HuggingFace model/dataset/repo management (hf download, hf upload, hf whoami, hf models ls); also installs tiny-agents",
+    "last_verified": "2026-06-08",
+    "installed_version": "3.2",
+    "compat_requires": [],
+    "source_repo": ""
   }
 ]
