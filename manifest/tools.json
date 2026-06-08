@@ -514,7 +514,8 @@
     "notes": "system Python (Debian-managed; never pip-install into it)",
     "last_verified": "2026-06-08",
     "installed_version": "3.13.5",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "pipx",
@@ -527,7 +528,8 @@
     "notes": "manages global Python CLIs in isolated venvs",
     "last_verified": "2026-06-08",
     "installed_version": "1.7.1",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "uv",
@@ -540,7 +542,8 @@
     "notes": "project deps + Python versions (uv python install)",
     "last_verified": "2026-06-08",
     "installed_version": "0.11.19",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "ruff",
@@ -553,7 +556,8 @@
     "notes": "linter + formatter; replaces black/flake8",
     "last_verified": "2026-06-08",
     "installed_version": "0.15.16",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "ipython",
@@ -566,7 +570,8 @@
     "notes": "interactive REPL",
     "last_verified": "2026-06-08",
     "installed_version": "9.14.0",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "jupyterlab",
@@ -579,7 +584,8 @@
     "notes": "launch with 'jupyter-lab'; project kernels stay local",
     "last_verified": "2026-06-08",
     "installed_version": "4.5.8",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "nodejs",
@@ -592,7 +598,8 @@
     "notes": "current LTS via NodeSource apt repo",
     "last_verified": "2026-06-08",
     "installed_version": "22.22.3",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "npm",
@@ -605,7 +612,8 @@
     "notes": "bundled with Node.js",
     "last_verified": "2026-06-08",
     "installed_version": "10.9.8",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "pnpm",
@@ -618,7 +626,8 @@
     "notes": "preferred package manager (npm -g into ~/.local)",
     "last_verified": "2026-06-08",
     "installed_version": "11.5.1",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "tsx",
@@ -631,7 +640,8 @@
     "notes": "run TypeScript files directly, no build step",
     "last_verified": "2026-06-08",
     "installed_version": "4.22.4",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "rust",
@@ -644,7 +654,8 @@
     "notes": "rustup toolchain: cargo, rustc, rustfmt, clippy",
     "last_verified": "2026-06-08",
     "installed_version": "1.96.0",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "rustfmt",
@@ -657,7 +668,8 @@
     "notes": "Rust formatter (rustup component)",
     "last_verified": "2026-06-08",
     "installed_version": "1.9.0",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "clippy",
@@ -670,7 +682,8 @@
     "notes": "Rust linter — run via 'cargo clippy'",
     "last_verified": "2026-06-08",
     "installed_version": "0.1.96",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "rust-analyzer",
@@ -685,7 +698,8 @@
     "installed_version": "1.96.0",
     "compat_requires": [
       "rust"
-    ]
+    ],
+    "source_repo": ""
   },
   {
     "name": "go",
@@ -698,7 +712,8 @@
     "notes": "Go toolchain (incl. gofmt) — trixie apt",
     "last_verified": "2026-06-08",
     "installed_version": "1.24.4",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "openjdk",
@@ -711,7 +726,8 @@
     "notes": "OpenJDK (default-jdk) — trixie apt",
     "last_verified": "2026-06-08",
     "installed_version": "21.0.11",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "maven",
@@ -724,7 +740,8 @@
     "notes": "build tool; Gradle uses ./gradlew per project",
     "last_verified": "2026-06-08",
     "installed_version": "3.9.9",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "dotnet",
@@ -737,7 +754,8 @@
     "notes": ".NET SDK via Microsoft feed",
     "last_verified": "2026-06-08",
     "installed_version": "9.0.314",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "radare2",
@@ -960,7 +978,8 @@
     "notes": "universal document converter",
     "last_verified": "2026-06-08",
     "installed_version": "3.1.11.1",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "markdownlint-cli",
@@ -973,7 +992,8 @@
     "notes": "markdown linter for docs",
     "last_verified": "2026-06-08",
     "installed_version": "0.48.0",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "imagemagick",
@@ -983,10 +1003,11 @@
     "install_method": "apt",
     "detect": "magick --version",
     "status": "core",
-    "notes": "image manipulation/conversion",
+    "notes": "image manipulation/conversion/compositing",
     "last_verified": "2026-06-08",
     "installed_version": "7.1.1",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "ffmpeg",
@@ -996,10 +1017,11 @@
     "install_method": "apt",
     "detect": "ffmpeg -version",
     "status": "core",
-    "notes": "audio/video transcoding",
+    "notes": "audio/video/image transcoding and conversion",
     "last_verified": "2026-06-08",
     "installed_version": "7.1.4",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "pillow",
@@ -1009,12 +1031,13 @@
     "install_method": "pipx-inject",
     "detect": "ipython -c 'import PIL; print(PIL.__version__)'",
     "status": "core",
-    "notes": "Python imaging library; injected into ipython for REPL use — use 'uv add pillow' for project code",
+    "notes": "Python imaging library; injected into ipython — use 'uv add pillow' for project code",
     "last_verified": "2026-06-08",
     "installed_version": "12.2.0",
     "compat_requires": [
       "ipython"
-    ]
+    ],
+    "source_repo": ""
   },
   {
     "name": "docker",
@@ -1027,7 +1050,8 @@
     "notes": "Docker Engine (or existing Docker Desktop)",
     "last_verified": "2026-06-08",
     "installed_version": "29.5.3",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "docker-compose",
@@ -1040,7 +1064,8 @@
     "notes": "Compose v2 plugin — invoke as 'docker compose'",
     "last_verified": "2026-06-08",
     "installed_version": "5.1.4",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "devcontainer",
@@ -1053,7 +1078,8 @@
     "notes": "Dev Containers CLI",
     "last_verified": "2026-06-08",
     "installed_version": "0.87.0",
-    "compat_requires": []
+    "compat_requires": [],
+    "source_repo": ""
   },
   {
     "name": "qemu-system",
@@ -1085,7 +1111,7 @@
     "install_method": "windows-host-driver",
     "detect": "nvidia-smi -L",
     "status": "optional",
-    "notes": "GPU passthrough from Windows host driver; CUDA toolkit/ML libs are project/container scoped",
+    "notes": "GPU available via Windows host driver passthrough; CUDA toolkit/ML libs are project/container scoped",
     "last_verified": "2026-06-08",
     "installed_version": "",
     "compat_requires": [],
@@ -1158,6 +1184,132 @@
     "notes": "enables docker run --gpus all; runtime configured via nvidia-ctk",
     "last_verified": "2026-06-08",
     "installed_version": "1.19.1",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "pngquant",
+    "binary": "pngquant",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "pngquant --version",
+    "status": "core",
+    "notes": "lossy PNG compression (up to 70% size reduction)",
+    "last_verified": "2026-06-08",
+    "installed_version": "2.18.0",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "optipng",
+    "binary": "optipng",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "optipng --version",
+    "status": "core",
+    "notes": "lossless PNG optimization",
+    "last_verified": "2026-06-08",
+    "installed_version": "0.7.8",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "gifsicle",
+    "binary": "gifsicle",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "gifsicle --version",
+    "status": "core",
+    "notes": "GIF creation, optimization, and frame editing",
+    "last_verified": "2026-06-08",
+    "installed_version": "1.96",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "webp",
+    "binary": "cwebp",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "cwebp -version",
+    "status": "core",
+    "notes": "WebP encode/decode (cwebp, dwebp, webpinfo)",
+    "last_verified": "2026-06-08",
+    "installed_version": "1.5.0",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "jpegoptim",
+    "binary": "jpegoptim",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "jpegoptim --version",
+    "status": "core",
+    "notes": "JPEG compression and metadata stripping",
+    "last_verified": "2026-06-08",
+    "installed_version": "1.4.7",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "libheif",
+    "binary": "heif-convert",
+    "group": "image",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "command -v heif-convert",
+    "status": "core",
+    "notes": "HEIF/AVIF read+write (heif-convert, heif-info)",
+    "last_verified": "2026-06-08",
+    "installed_version": "",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "rembg",
+    "binary": "rembg",
+    "group": "image",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "command -v rembg",
+    "status": "core",
+    "notes": "AI background removal (u2net, ONNX; no GPU required; model ~170 MB downloads on first use)",
+    "last_verified": "2026-06-08",
+    "installed_version": "",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "realesrgan-ncnn-vulkan",
+    "binary": "realesrgan-ncnn-vulkan",
+    "group": "image",
+    "scope": "global",
+    "install_method": "github-zip",
+    "detect": "command -v realesrgan-ncnn-vulkan",
+    "status": "core",
+    "notes": "AI upscaling + anime conversion: models x4plus (photos), x4plus-anime, animevideov3, x4plus-fast; GPU (Vulkan) or CPU",
+    "last_verified": "2026-06-08",
+    "installed_version": "",
+    "compat_requires": [],
+    "source_repo": "xinntao/Real-ESRGAN-ncnn-vulkan"
+  },
+  {
+    "name": "iopaint",
+    "binary": "iopaint",
+    "group": "optional-gpu",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "command -v iopaint",
+    "status": "optional",
+    "notes": "AI inpainting: object/person/background removal (LaMa, MAT, SD models; GPU recommended for speed)",
+    "last_verified": "2026-06-08",
+    "installed_version": "",
     "compat_requires": [],
     "source_repo": ""
   }
