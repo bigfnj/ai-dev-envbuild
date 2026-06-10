@@ -450,13 +450,13 @@
   {
     "name": "tokei",
     "binary": "tokei",
-    "group": "core",
+    "group": "languages",
     "scope": "global",
-    "install_method": "apt",
+    "install_method": "cargo",
     "detect": "tokei --version",
     "status": "core",
-    "notes": "",
-    "last_verified": "2026-06-08",
+    "notes": "code statistics / LOC counter (Rust crate via cargo)",
+    "last_verified": "2026-06-10",
     "installed_version": "12.1.2",
     "compat_requires": [],
     "source_repo": ""

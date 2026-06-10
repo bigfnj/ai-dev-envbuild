@@ -43,9 +43,13 @@ core_packages() {
         build-essential pkg-config make cmake ninja-build \
         gcc g++ clang gdb lldb valgrind strace \
         ripgrep fd-find fzf bat git-delta jq yq tree sqlite3 \
-        tmux entr socat htop btop shellcheck shfmt tokei \
+        tmux entr socat htop btop shellcheck shfmt \
         gh hyperfine time \
         sshpass expect
+    # NOTE: tokei (LOC counter) is intentionally NOT here. It's a Rust crate and
+    # is only in Debian trixie apt — not Ubuntu's repos — so apt-installing it
+    # aborted the whole run on Ubuntu/WSL. It's installed via cargo in the
+    # languages group instead (cross-distro, and cargo exists there).
 }
 
 # Debian ships fd as `fdfind` and bat as `batcat` (name conflicts). Expose the
@@ -84,7 +88,7 @@ core_record_manifest() {
         "ripgrep:rg" "fd-find:fdfind" "fzf:fzf" "bat:batcat" "git-delta:delta"
         "jq:jq" "yq:yq" "tree:tree" "sqlite3:sqlite3" "tmux:tmux" "entr:entr"
         "socat:socat" "htop:htop" "btop:btop" "shellcheck:shellcheck"
-        "shfmt:shfmt" "tokei:tokei" "gh:gh" "hyperfine:hyperfine"
+        "shfmt:shfmt" "gh:gh" "hyperfine:hyperfine"
     )
     local pair name bin detect
     for pair in "${pairs[@]}"; do

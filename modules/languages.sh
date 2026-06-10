@@ -16,6 +16,7 @@ languages_desc() { echo "Rust (rustup), Go, OpenJDK + Maven, .NET (best-effort)"
 languages_install() {
     languages_rust
     languages_rust_analyzer
+    languages_cargo_cli
     languages_go
     languages_java
     languages_dotnet
@@ -49,6 +50,26 @@ languages_rust_analyzer() {
     fi
     log_info "adding rust-analyzer rustup component"
     rustup component add rust-analyzer
+}
+
+# Global Rust CLI tools via cargo. Cargo is on PATH here because languages_rust
+# sourced ~/.cargo/env. These live in the languages group (not core) precisely
+# because core runs before Rust exists on a fresh machine — apt-installing them
+# there is wrong (e.g. tokei is in Debian apt but not Ubuntu's, which aborted
+# the whole bootstrap on Ubuntu/WSL).
+languages_cargo_cli() {
+    if ! has cargo; then
+        log_warn "cargo CLIs: cargo not found — skipping (Rust not installed?)"
+        return 0
+    fi
+    if has tokei; then
+        log_skip "tokei already installed"
+    elif is_dry_run; then
+        log_info "[DRY-RUN] would: cargo install tokei"
+    else
+        log_info "cargo install tokei (LOC counter — compiles from source)"
+        cargo install tokei || log_warn "cargo install tokei failed — skipping"
+    fi
 }
 
 # Go from apt — trixie ships 1.24, current enough; lands on /usr/bin.
@@ -86,6 +107,7 @@ languages_dotnet() {
 
 languages_record_manifest() {
     if has cargo;       then manifest_add rust    cargo   languages global rustup "cargo --version"    core "rustup toolchain: cargo, rustc, rustfmt, clippy"; fi
+    if has tokei;       then manifest_add tokei   tokei   languages global cargo  "tokei --version"     core "code statistics / LOC counter (Rust crate via cargo)"; fi
     if has rustfmt;     then manifest_add rustfmt rustfmt languages global rustup "rustfmt --version"  core "Rust formatter (rustup component)"; fi
     if has cargo-clippy;then manifest_add clippy  cargo-clippy languages global rustup "cargo-clippy --version" core "Rust linter — run via 'cargo clippy'"; fi
     if rustup component list --installed 2>/dev/null | grep -q "^rust-analyzer"; then
