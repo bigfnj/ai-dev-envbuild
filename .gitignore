@@ -1,3 +1,10 @@
 mcp-server/node_modules/
 *.bak-*
 .github/copilot-instructions.md
+CLAUDE.md
+AGENTS.md
+.cursorrules
+.windsurfrules
+.codex/
+SESSION_LOG*.md
+SESSION_HANDOFF*.md
