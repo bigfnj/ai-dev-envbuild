@@ -117,7 +117,12 @@ image_record_manifest() {
     local im=""
     if has magick; then im=magick; elif has convert; then im=convert; fi
     if [ -n "$im" ]; then
-        manifest_add imagemagick "$im" image global apt "$im --version" core "image manipulation/conversion/compositing"
+        # Detect is intentionally cross-platform: ImageMagick is `magick` on IM7
+        # (Debian trixie) and `convert` on IM6 (Ubuntu 24.04). Recording a
+        # tolerant detect lets `devtools check` pass regardless of which major
+        # the host ships, even when the committed manifest was generated on the
+        # other distro.
+        manifest_add imagemagick "$im" image global apt "magick --version || convert --version" core "image manipulation/conversion/compositing (magick on IM7, convert on IM6)"
     fi
     if has ffmpeg; then
         manifest_add ffmpeg ffmpeg image global apt "ffmpeg -version" core "audio/video/image transcoding and conversion"

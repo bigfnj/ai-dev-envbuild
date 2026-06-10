@@ -1001,10 +1001,10 @@
     "group": "image",
     "scope": "global",
     "install_method": "apt",
-    "detect": "magick --version",
+    "detect": "magick --version || convert --version",
     "status": "core",
-    "notes": "image manipulation/conversion/compositing",
-    "last_verified": "2026-06-08",
+    "notes": "image manipulation/conversion/compositing (magick on IM7, convert on IM6)",
+    "last_verified": "2026-06-10",
     "installed_version": "7.1.1",
     "compat_requires": [],
     "source_repo": ""

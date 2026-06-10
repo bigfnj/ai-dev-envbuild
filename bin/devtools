@@ -53,14 +53,18 @@ cmd_report() {
 
 cmd_check() {
     require_manifest
-    local total=0 missing=0 name binary
-    while IFS=$'\t' read -r name binary; do
+    local total=0 missing=0 name binary detect
+    while IFS=$'\t' read -r name binary detect; do
         total=$((total + 1))
-        if ! command -v "$binary" >/dev/null 2>&1; then
-            bad "MISSING  $name  (binary: $binary)"
-            missing=$((missing + 1))
-        fi
-    done < <(jq -r '.[] | "\(.name)\t\(.binary)"' "$MANIFEST")
+        # Fast path: the recorded binary is on PATH.
+        if command -v "$binary" >/dev/null 2>&1; then continue; fi
+        # Tolerant fallback: a tool may be present under a different binary name
+        # across platforms (e.g. ImageMagick is `magick` on IM7 / `convert` on
+        # IM6). Trust the manifest's detect command when the binary name misses.
+        if [ -n "$detect" ] && sh -c "$detect" >/dev/null 2>&1; then continue; fi
+        bad "MISSING  $name  (binary: $binary)"
+        missing=$((missing + 1))
+    done < <(jq -r '.[] | "\(.name)\t\(.binary)\t\(.detect // "")"' "$MANIFEST")
     if [ "$missing" -eq 0 ]; then
         ok "all $total manifest tools present"
     else

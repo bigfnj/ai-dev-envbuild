@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "path": "modules/image.sh",
-  "sha1": "aa230873bbdbed4b63dc0a4c7318e5eeb6fc9060",
+  "sha1": "1d6465fb085c122103b4ed0c6d8e82823b95d224",
   "purpose": "Bootstrap module for the image group; installs a comprehensive image editing toolset: imagemagick, ffmpeg, format optimizers (pngquant, optipng, gifsicle, webp, jpegoptim, libheif), AI background removal (rembg), AI upscaling/anime (realesrgan-ncnn-vulkan), and Pillow injected into ipython.",
   "exports": [
     "image_desc",
@@ -29,14 +29,14 @@
   ],
   "invariants": [
     "imagemagick and ffmpeg are always global (apt); Python imaging libraries for project code go in the project venv via uv",
-    "Pillow is only injected if ipython is already installed — skipped with a warning otherwise",
+    "Pillow is only injected if ipython is already installed \u2014 skipped with a warning otherwise",
     "Pillow injection is idempotent: skipped if 'import PIL' already succeeds in the ipython env",
-    "rembg is installed via pipx (not uv/pip) and checked with 'has rembg' — the [cli] extra confuses pipx list name comparison",
+    "rembg is installed via pipx (not uv/pip) and checked with 'has rembg' \u2014 the [cli] extra confuses pipx list name comparison",
     "realesrgan-ncnn-vulkan binary is downloaded from GitHub releases and linked into ~/tools/bin; model files are NOT bundled in v0.2.0 and must be obtained separately",
     "All installs are idempotent: guarded by has/pkg_installed checks before doing work"
   ],
   "gotchas": [
-    "ImageMagick 7 ships 'magick'; older versions used 'convert' — image_record_manifest checks magick first then falls back to convert",
+    "ImageMagick 7 ships 'magick'; older versions used 'convert' \u2014 image_record_manifest checks magick first then falls back to convert",
     "rembg[cli] extra cannot be detected via pipx list --short (name comparison strips the extra); custom idempotency check uses 'has rembg' instead",
     "realesrgan-ncnn-vulkan v0.2.0 release zip contains only the binary (no model .param/.bin files); models must be placed in ~/tools/realesrgan/realesrgan-ncnn-vulkan-v0.2.0-ubuntu/models/ manually",
     "realesrgan binary extracts to a versioned subdirectory, so find uses -maxdepth 2 (not 1) to locate it",
@@ -44,10 +44,25 @@
     "The python group (ipython) must run before the image group for Pillow injection to succeed"
   ],
   "key_functions": [
-    { "name": "image_apt_extra", "summary": "apt-installs format optimization tools: pngquant, optipng, gifsicle, webp, jpegoptim, libheif-examples" },
-    { "name": "image_rembg", "summary": "pipx-installs rembg[cli] for AI background removal; idempotency check uses 'has rembg' because [cli] confuses pipx list" },
-    { "name": "image_realesrgan", "summary": "Downloads realesrgan-ncnn-vulkan binary from GitHub releases, verifies SHA256, extracts to ~/tools/realesrgan/, and symlinks into ~/tools/bin" },
-    { "name": "image_pillow", "summary": "Injects Pillow into the ipython pipx environment via 'pipx inject ipython Pillow' — skipped if ipython is absent or Pillow already importable" },
-    { "name": "image_record_manifest", "summary": "Upserts manifest entries for all 10 image tools: imagemagick, ffmpeg, pillow, pngquant, optipng, gifsicle, webp, jpegoptim, libheif, rembg, realesrgan-ncnn-vulkan" }
+    {
+      "name": "image_apt_extra",
+      "summary": "apt-installs format optimization tools: pngquant, optipng, gifsicle, webp, jpegoptim, libheif-examples"
+    },
+    {
+      "name": "image_rembg",
+      "summary": "pipx-installs rembg[cli] for AI background removal; idempotency check uses 'has rembg' because [cli] confuses pipx list"
+    },
+    {
+      "name": "image_realesrgan",
+      "summary": "Downloads realesrgan-ncnn-vulkan binary from GitHub releases, verifies SHA256, extracts to ~/tools/realesrgan/, and symlinks into ~/tools/bin"
+    },
+    {
+      "name": "image_pillow",
+      "summary": "Injects Pillow into the ipython pipx environment via 'pipx inject ipython Pillow' \u2014 skipped if ipython is absent or Pillow already importable"
+    },
+    {
+      "name": "image_record_manifest",
+      "summary": "Upserts manifest entries for all 10 image tools: imagemagick, ffmpeg, pillow, pngquant, optipng, gifsicle, webp, jpegoptim, libheif, rembg, realesrgan-ncnn-vulkan"
+    }
   ]
 }
