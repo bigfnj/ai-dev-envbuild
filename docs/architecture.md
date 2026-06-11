@@ -146,6 +146,7 @@ explicit flag.
 | `docs` | ✅ | pandoc, markdownlint-cli |
 | `image` | ✅ | imagemagick, ffmpeg (system CLIs; Pillow/OpenCV stay project-local) |
 | `containers` | ✅ | Docker CLI + Compose (WSL integration), devcontainer CLI |
+| `mcp` | ✅ | devenv MCP server (exposes manifest tools) + registers MCP servers for Claude Code (user scope), Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
 | `optional-gpu` | ⛔ flag | NVIDIA/CUDA WSL path, GPU PyTorch guidance |
 
@@ -195,6 +196,18 @@ its entries. Schema per tool:
 reads, up front: check the manifest and run `devtools report` before proposing
 an install; use `uv`/`pnpm` for project deps; never global `pip install`;
 update `tools.json` when tooling changes.
+
+**The `devenv` MCP server turns the manifest into live tools.** `modules/mcp.sh`
+runs a small Node MCP server (`mcp-server/`) that exposes every global manifest
+tool (minus a denylist) as a callable MCP tool, and registers it — plus github,
+playwright, and context7 — in every agent config on the machine. It always
+targets the scope that auto-loads with no per-project approval: **user scope**
+for Claude Code (top-level `mcpServers` in `~/.claude.json` — Claude Code does
+*not* read `~/.mcp.json` from `$HOME`), `[mcp_servers.*]` in
+`~/.codex/config.toml` for Codex, and the `servers` key for VS Code / Cursor.
+(Enterprise-managed Claude Code may gate server names via an
+`allowedMcpServers` allowlist in `~/.claude/remote-settings.json`; a custom
+server must be on that list to load, regardless of scope.)
 
 ---
 

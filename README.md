@@ -1,6 +1,6 @@
 # ai-dev-envbuild
 
-> **Environment version: 1.2.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
+> **Environment version: 1.3.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
 
 Reproducible, idempotent, agent-discoverable **Debian/Ubuntu/WSL2 development
 environment** — a broad "Swiss army knife" workstation (modern dev, legacy
@@ -41,6 +41,7 @@ what's installed before touching anything. Full rationale:
 | `docs` | ✅ | pandoc, markdownlint-cli |
 | `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython) |
 | `containers` | ✅ | Docker Engine + Compose, devcontainer CLI |
+| `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7 for Claude Code, Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
 | `optional-gpu` | ⛔ flag | NVIDIA/CUDA detection + guidance |
 
@@ -147,6 +148,8 @@ a new tool is added or a group is meaningfully changed.
 
 | Version | Change |
 |---------|--------|
+| **1.3.0** | Codex MCP registration (`~/.codex/config.toml`); Claude Code MCP moved to **user scope** (`~/.claude.json`) so servers load by default everywhere — the old `~/.mcp.json` was never read from `$HOME`. See `CHANGELOG.md` for the managed-allowlist gotcha. |
+| **1.2.0** | `devtools outdated` live GitHub-release checks (`source_repo`); SHA256 pinning (`verify_sha256`); `--dry-run`; pre-commit gate wired via `core.hooksPath`; CI (shellcheck + manifest JSON); MCP server denylist; cross-platform `detect` fallback |
 | **1.1.0** | Expanded `write_agent_discovery` to inline full install rules into `~/CLAUDE.md` and `~/AGENTS.md` — all agents on all projects now see Python/ML/system install constraints without needing to discover `docs/agent-rules.md` |
 | **1.0.0** | Initial stable release — versioning, README refresh, Pillow remediation |
 

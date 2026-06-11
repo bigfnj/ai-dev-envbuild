@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "path": "lib/common.sh",
-  "sha1": "a03cd7e65abd2049c81e6a5156f133ac043f65b2",
+  "sha1": "71176c2472cb262fdfbbf323f7f86c8d917a1987",
   "purpose": "Shared library sourced by bootstrap.sh and every module; defines logging, detection, idempotent install helpers, manifest upsert logic, and agent-discovery file writers — never executes on its own.",
   "exports": [
     "log_info",

@@ -159,6 +159,10 @@ Run these first — the tool you want is probably already here:
   - \`devtools outdated\`  — check for newer versions; flags compat constraints
   - \`smoke-test\`         — exercise the toolchain end-to-end
 
+Every inventory tool is runnable directly from the shell — \`devtools report\`
+lists them all. (A \`devenv\` MCP server also exposes them as MCP tools, but
+managed MCP policy may block it; the shell path always works.)
+
 Full rules: $REPO_ROOT/docs/agent-rules.md
 
 ## Install rules (follow exactly — violations cause environment rot)
