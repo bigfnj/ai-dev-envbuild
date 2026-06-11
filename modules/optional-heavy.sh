@@ -9,12 +9,13 @@
 optional_heavy_desc() { echo "QEMU full-system + userspace emulation (opt-in)"; }
 
 optional_heavy_install() {
-    apt_install qemu-system qemu-utils qemu-user-static
+    apt_install qemu-system qemu-utils qemu-user qemu-user-binfmt
     optional_heavy_record_manifest
 }
 
 optional_heavy_record_manifest() {
     if has qemu-system-x86_64; then manifest_add qemu-system qemu-system-x86_64 optional-heavy global apt "qemu-system-x86_64 --version" optional "full-system emulation (multiple arches)"; fi
     if has qemu-img;           then manifest_add qemu-utils  qemu-img           optional-heavy global apt "qemu-img --version"           optional "disk-image tooling (qemu-img, …)"; fi
+    if has qemu-aarch64;       then manifest_add qemu-user   qemu-aarch64       optional-heavy global apt "qemu-aarch64 --version"       optional "userspace emulation for foreign-arch binaries (aarch64, arm, riscv64, …)"; fi
     log_ok "manifest updated — optional-heavy group"
 }
