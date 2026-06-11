@@ -82,10 +82,10 @@ ai-dev-envbuild/
     core.sh  python.sh  node.sh  languages.sh  reverse.sh
     data.sh  docs.sh  image.sh  containers.sh  mcp.sh
     optional-heavy.sh  optional-gpu.sh
-  mcp-server/             devenv MCP server (Node) — exposes manifest tools as MCP
+  mcp-server/             devenv MCP server (Node) — exposes inventory tools as MCP
     index.js  denylist.json  package.json
   manifest/
-    tools.json            machine-readable inventory (the source of truth)
+    catalog.json          pre-bootstrap fallback tool catalog
   bin/
     devtools              report / check / doctor / outdated — agent + human discovery
     smoke-test            exercises the toolchain end-to-end (the build gate)
@@ -105,6 +105,7 @@ The **home-directory layout** the bootstrap establishes for the user:
 ~/sandboxes/              throwaway experiments, untrusted analysis
 ~/tools/
   bin/                    user scripts on PATH (symlinks to bin/devtools etc.)
+  manifest/tools.json     machine-local generated inventory
   logs/                   bootstrap run logs
 ~/.local/bin/             pipx shims (managed by pipx, added to PATH once)
 ```
@@ -145,14 +146,14 @@ explicit flag.
 
 | Group | Default? | Contents |
 |---|---|---|
-| `core` | ✅ | apt CLI tools, build-essential, shell utilities, PATH + folder setup |
+| `core` | ✅ | apt CLI tools, build-essential, shell utilities, disk/env/secrets helpers, PATH + folder setup |
 | `python` | ✅ | pipx, uv (also installs Python versions), ruff, ipython, jupyterlab |
 | `node` | ✅ | NodeSource Node.js, pnpm, tsx |
 | `languages` | ✅ | Rust (rustup), Go, .NET SDK, OpenJDK |
 | `reverse` | ✅ | radare2, binwalk, exiftool, tshark, foremost, **dosbox-x (headless)**, Ghidra (+ Windows note) |
-| `data` | ✅ | duckdb CLI, sqlite-utils, csvkit (pipx) |
+| `data` | ✅ | duckdb CLI, sqlite-utils, csvkit (pipx), rclone |
 | `docs` | ✅ | pandoc, markdownlint-cli |
-| `image` | ✅ | imagemagick, ffmpeg (system CLIs; Pillow/OpenCV stay project-local) |
+| `image` | ✅ | imagemagick, ffmpeg, yt-dlp, aria2 (system/media CLIs; Pillow/OpenCV stay project-local) |
 | `containers` | ✅ | Docker CLI + Compose (WSL integration), devcontainer CLI |
 | `mcp` | ✅ | devenv MCP server (exposes manifest tools) + registers MCP servers for Claude Code (user scope), Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
@@ -172,8 +173,11 @@ explicit flag.
 The environment must answer, for a human or an AI agent, *before* anything new
 is installed: what's installed, where, how, and is it global or project-scoped.
 
-**`manifest/tools.json` is the source of truth.** Every module appends/updates
-its entries. Schema per tool:
+**`~/tools/manifest/tools.json` is the live source of truth.** Every module
+appends/updates entries there during bootstrap based on the tools actually
+present on the workstation. The repo tracks `manifest/catalog.json` only as a
+pre-bootstrap fallback catalog, so machine-local installed versions and optional
+tool state do not need to be committed. Schema per tool:
 
 ```json
 {
@@ -195,18 +199,18 @@ its entries. Schema per tool:
 **`bin/devtools` is the interface:**
 
 - `devtools report` — human-readable inventory grouped by layer
-- `devtools check` — diff manifest vs reality (what's declared but missing, or
+- `devtools check` — diff inventory vs reality (what's declared but missing, or
   present but undeclared); exit non-zero on drift
 - `devtools doctor` — environment health (PATH sanity, version-manager init,
   WSL filesystem checks)
 
 **`docs/agent-rules.md` is injected into `AGENTS.md`** so every AI session
-reads, up front: check the manifest and run `devtools report` before proposing
+reads, up front: check the inventory and run `devtools report` before proposing
 an install; use `uv`/`pnpm` for project deps; never global `pip install`;
-update `tools.json` when tooling changes.
+run bootstrap when tooling changes so the local inventory is regenerated.
 
-**The `devenv` MCP server turns the manifest into live tools.** `modules/mcp.sh`
-runs a small Node MCP server (`mcp-server/`) that exposes every global manifest
+**The `devenv` MCP server turns the inventory into live tools.** `modules/mcp.sh`
+runs a small Node MCP server (`mcp-server/`) that exposes every global inventory
 tool (minus a denylist) as a callable MCP tool, and registers it — plus github,
 playwright, and context7 — in every agent config on the machine. It always
 targets the scope that auto-loads with no per-project approval: **user scope**
@@ -229,8 +233,8 @@ Re-running `bootstrap.sh` must be safe, fast, and non-destructive.
   copied to `*.bak-<timestamp>` first; edits are marker-fenced and idempotent
   (re-running replaces the fenced block, never appends a duplicate).
 - **Log every action** to `~/tools/logs/bootstrap-<timestamp>.log`.
-- **Manifest is regenerated, not appended blindly** — a re-run reconciles
-  `tools.json` to current reality.
+- **Local inventory is regenerated, not appended blindly** — a full/default
+  re-run reconciles `~/tools/manifest/tools.json` to current reality.
 - **No massive optional stacks by default** — `optional-heavy` / `optional-gpu`
   never run without an explicit flag.
 

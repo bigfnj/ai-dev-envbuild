@@ -5,7 +5,8 @@
 
 : "${REPO_ROOT:?REPO_ROOT must be set before sourcing lib/common.sh}"
 
-MANIFEST="$REPO_ROOT/manifest/tools.json"
+CATALOG="$REPO_ROOT/manifest/catalog.json"
+MANIFEST="${DEVENV_MANIFEST:-$HOME/tools/manifest/tools.json}"
 # shellcheck disable=SC2034  # consumed by bootstrap.sh — this file is sourced
 LOG_DIR="$HOME/tools/logs"
 TODAY="$(date +%Y-%m-%d)"
@@ -56,12 +57,12 @@ apt_install() {
 # entry point into ~/.local/bin (already on PATH). Skips if already installed.
 pipx_install() {
     local pkg="$1"
+    if is_dry_run; then log_info "[DRY-RUN] would pipx install $pkg"; return 0; fi
     has pipx || { log_err "pipx not installed; cannot pipx_install $pkg"; return 1; }
     if pipx list --short 2>/dev/null | awk '{print $1}' | grep -qx "$pkg"; then
         log_skip "pipx: $pkg already installed"
         return 0
     fi
-    if is_dry_run; then log_info "[DRY-RUN] would pipx install $pkg"; return 0; fi
     log_info "pipx install $pkg"
     pipx install "$pkg"
 }
@@ -71,6 +72,7 @@ pipx_install() {
 # reuses the ~/.local/bin PATH entry. Ensures the prefix once, idempotent.
 npm_global() {
     local pkg="$1" bin="${2:-$1}"
+    if is_dry_run; then log_info "[DRY-RUN] would npm install -g $pkg"; return 0; fi
     has npm || { log_err "npm not installed; cannot npm_global $pkg"; return 1; }
     if [ "$(npm config get prefix)" != "$HOME/.local" ]; then
         npm config set prefix "$HOME/.local"
@@ -80,13 +82,16 @@ npm_global() {
         log_skip "npm -g: $pkg already present ($bin)"
         return 0
     fi
-    if is_dry_run; then log_info "[DRY-RUN] would npm install -g $pkg"; return 0; fi
     log_info "npm install -g $pkg"
     npm install -g "$pkg"
 }
 
 # ── Filesystem / shell config ─────────────────────────────────────────────────
-ensure_dir() { [ -d "$1" ] && return 0; mkdir -p "$1"; log_ok "mkdir $1"; }
+ensure_dir() {
+    [ -d "$1" ] && return 0
+    if is_dry_run; then log_info "[DRY-RUN] would mkdir $1"; return 0; fi
+    mkdir -p "$1"; log_ok "mkdir $1"
+}
 
 backup_file() {
     [ -f "$1" ] || return 0
@@ -188,14 +193,16 @@ Full rules: $REPO_ROOT/docs/agent-rules.md
 ## Adding a tool to this repo (mandatory steps — do not skip any)
 
 1. Edit \`modules/<group>.sh\`: add install call in \`*_install\` and \`manifest_add\` in \`*_record_manifest\`.
-2. \`./bootstrap.sh --only <group>\` — installs the tool AND regenerates the manifest.
+2. \`./bootstrap.sh --only <group>\` — installs the tool AND updates the local inventory.
 3. \`devtools check\` — must show no drift.
 4. \`smoke-test\` — must exit 0. Red = broken build; fix before pushing.
 5. Only then: \`git add -A && git commit && git push\`.
 
 ## Inventory of record
 
-$REPO_ROOT/manifest/tools.json
+$MANIFEST
+
+Repo fallback catalog: $CATALOG
 EOF
 )"
     ensure_block "$HOME/AGENTS.md" "DEVENV_RULES" "$body"
@@ -227,7 +234,7 @@ verify_sha256() {
 # ── Manifest ──────────────────────────────────────────────────────────────────
 # manifest_add name binary group scope install_method detect status [notes] [compat_requires] [source_repo]
 #
-# Upserts by name into manifest/tools.json (the agent-discoverable inventory).
+# Upserts by name into the machine-local agent-discoverable inventory.
 #
 # compat_requires: space-separated list of other manifest tool names that must
 # stay version-compatible with this one (e.g. "ipython" for pillow, "rust" for

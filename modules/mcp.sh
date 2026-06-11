@@ -37,6 +37,7 @@ mcp_install() {
 }
 
 mcp_install_deps() {
+    if is_dry_run; then log_info "[DRY-RUN] would install MCP server node dependencies"; return 0; fi
     has pnpm || { log_err "pnpm not installed — run the node group first"; return 1; }
     log_info "installing MCP server node dependencies"
     ( cd "$REPO_ROOT/mcp-server" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install )
@@ -122,6 +123,7 @@ _mcp_write_codex_fmt() {
 }
 
 mcp_register() {
+    if is_dry_run; then log_info "[DRY-RUN] would register MCP servers for Claude Code, Codex, VS Code, and Cursor"; return 0; fi
     local server_path="$REPO_ROOT/mcp-server/index.js"
 
     # ── Claude Code (USER scope → loads in every project, no approval) ──────────

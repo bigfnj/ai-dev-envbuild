@@ -26,6 +26,11 @@ node_runtime() {
         log_skip "node already installed ($(node --version))"
         return 0
     fi
+    if is_dry_run; then
+        log_info "[DRY-RUN] would add NodeSource repo (Node ${NODE_MAJOR}.x)"
+        log_info "[DRY-RUN] would apt install: nodejs"
+        return 0
+    fi
     log_info "adding NodeSource repo (Node ${NODE_MAJOR}.x)"
     curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | sudo -E bash -
     apt_install nodejs

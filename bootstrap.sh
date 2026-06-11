@@ -76,6 +76,16 @@ run_group() {
     fi
 }
 
+includes_all_default_groups() {
+    local want have found
+    for want in "${DEFAULT_GROUPS[@]}"; do
+        found=0
+        for have in "$@"; do [ "$want" = "$have" ] && found=1; done
+        [ "$found" -eq 1 ] || return 1
+    done
+    return 0
+}
+
 main() {
     local groups=("${DEFAULT_GROUPS[@]}")
     while [ $# -gt 0 ]; do
@@ -104,20 +114,36 @@ main() {
     export PATH="$HOME/.local/bin:$HOME/tools/bin:$PATH"
 
     # Wire up the committed git hooks directory so pre-commit runs devtools check.
-    if [ -d "$REPO_ROOT/.git" ] && [ -d "$REPO_ROOT/hooks" ]; then
+    if ! is_dry_run && [ -d "$REPO_ROOT/.git" ] && [ -d "$REPO_ROOT/hooks" ]; then
         git -C "$REPO_ROOT" config core.hooksPath hooks
         log_ok "git hooks -> $REPO_ROOT/hooks"
     fi
 
-    ensure_dir "$LOG_DIR"
-    local logfile
-    logfile="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"
-    log_info "logging to $logfile"
-    exec > >(tee -a "$logfile") 2>&1
+    if is_dry_run; then
+        log_info "[DRY-RUN] logging to stdout only"
+    else
+        ensure_dir "$LOG_DIR"
+        local logfile
+        logfile="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"
+        log_info "logging to $logfile"
+        exec > >(tee -a "$logfile") 2>&1
+    fi
 
     log_info "groups: ${groups[*]}"
+    if ! is_dry_run && includes_all_default_groups "${groups[@]}"; then
+        ensure_dir "$(dirname "$MANIFEST")"
+        printf '[]\n' > "$MANIFEST"
+        log_ok "local inventory refreshed from this run -> $MANIFEST"
+    fi
+
     local g
     for g in "${groups[@]}"; do run_group "$g"; done
+
+    if is_dry_run; then
+        log_group "done"
+        log_ok "dry run complete — no post-install files written"
+        return 0
+    fi
 
     # Materialize machine-wide agent-discovery files (AGENTS.md / CLAUDE.md) so
     # AI agents learn the environment and check it before installing.

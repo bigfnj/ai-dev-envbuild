@@ -21,19 +21,15 @@ jobs:
             | xargs shellcheck --severity=warning
 
   manifest:
-    name: manifest valid JSON
+    name: catalog valid JSON
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate manifest/tools.json
+      - name: Validate manifest/catalog.json
         run: |
-          if [ ! -f manifest/tools.json ]; then
-            echo "manifest/tools.json not found — this is expected on a fresh clone before bootstrap"
-            exit 0
-          fi
-          if ! jq empty manifest/tools.json; then
-            echo "manifest/tools.json is not valid JSON"
+          if ! jq empty manifest/catalog.json; then
+            echo "manifest/catalog.json is not valid JSON"
             exit 1
           fi
-          count="$(jq 'length' manifest/tools.json)"
-          echo "manifest/tools.json valid — $count entries"
+          count="$(jq 'length' manifest/catalog.json)"
+          echo "manifest/catalog.json valid — $count entries"

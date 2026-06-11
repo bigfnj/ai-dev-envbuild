@@ -60,6 +60,7 @@ reverse_frida() { pipx_install frida-tools; }
 # window) plus a minimal default config, for scripted/automated analysis.
 reverse_dosbox_headless() {
     has dosbox-x || { log_warn "dosbox-x not installed — skipping headless wrapper"; return 0; }
+    if is_dry_run; then log_info "[DRY-RUN] would write dosbox-x-headless wrapper + config"; return 0; fi
     ensure_dir "$HOME/tools/etc"
     local conf="$HOME/tools/etc/dosbox-x-headless.conf"
     cat > "$conf" <<'CONF'

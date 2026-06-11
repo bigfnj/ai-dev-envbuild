@@ -143,6 +143,7 @@ optional_gpu_iopaint() {
 _optional_gpu_record_sdxl_inpaint() {
     local hf_dir="$HOME/.cache/huggingface/hub/models--diffusers--stable-diffusion-xl-1.0-inpainting-0.1"
     if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would write sdxl-inpaint checkpoint presence shim"; return 0; fi
         # Write a presence-check shim so devtools check (command -v) and
         # smoke-test can both verify the checkpoint with a real binary.
         local shim="$HOME/tools/bin/sdxl-inpaint"
@@ -165,6 +166,7 @@ SHIM
 _optional_gpu_record_flux_fill() {
     local hf_dir="$HOME/.cache/huggingface/hub/models--black-forest-labs--FLUX.1-Fill-dev"
     if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would write flux-fill-dev checkpoint presence shim"; return 0; fi
         local shim="$HOME/tools/bin/flux-fill-dev"
         cat > "$shim" <<SHIM
 #!/usr/bin/env bash

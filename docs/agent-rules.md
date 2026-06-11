@@ -9,10 +9,11 @@ global-install rot, and rediscovery this environment exists to avoid.
 1. **Check what's already here.** Run `devtools report` (full inventory) and
    `devtools check` (drift) before proposing or running any install. The
    environment is broad — the tool you want is probably already present.
-2. The machine-readable source of truth is
-   [`manifest/tools.json`](../manifest/tools.json). Each entry records the
-   tool's binary, group, scope (global / project-local / container), install
-   method, and a detect command.
+2. The machine-readable source of truth is the generated local inventory at
+  `~/tools/manifest/tools.json`. Each entry records the tool's binary, group,
+  scope (global / project-local / container), install method, and a detect
+  command. The repo's [`manifest/catalog.json`](../manifest/catalog.json) is
+  only a pre-bootstrap fallback catalog.
 
 ## Python
 
@@ -42,9 +43,9 @@ global-install rot, and rediscovery this environment exists to avoid.
 
 ## When you do add a tool
 
-Never install ad hoc and never hand-edit `manifest/tools.json` — the manifest is
-*generated* by each module. Follow this so a re-run and other machines stay
-consistent:
+Never install ad hoc and never hand-edit `~/tools/manifest/tools.json` — the
+inventory is *generated* by each module. Follow this so a re-run and other
+machines stay consistent:
 
 1. **Confirm it's missing:** `devtools report` / `devtools check`.
 2. **Edit the right `modules/<group>.sh`** (add a whole new group only if none
@@ -60,8 +61,8 @@ consistent:
      `detect` = a command that exits 0 when the tool works (usually
      `<bin> --version`; use `command -v <bin>` if it has no version flag).
 3. **Apply it:** `./bootstrap.sh --only <group>` — installs the tool AND
-   regenerates the manifest. Editing the module without running it leaves the
-   manifest stale.
+  updates the local inventory. Editing the module without running it leaves the
+  inventory stale on this machine.
 4. **Gate — both MUST pass before you push anything:**
    - `devtools check` — no manifest drift.
    - `smoke-test` — must exit 0. It exercises the toolchain end-to-end; a core

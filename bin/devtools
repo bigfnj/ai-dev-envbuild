@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # devtools — inspect and upgrade the dev environment.
 #
-#   devtools report    human-readable inventory from manifest/tools.json
+#   devtools report    human-readable inventory from ~/tools/manifest/tools.json
 #   devtools check     verify every manifest tool is actually present (drift)
 #   devtools doctor    environment health (PATH, shellrc, runtimes, docker, WSL)
 #   devtools outdated  check upstream for newer versions; flag compat constraints
@@ -14,7 +14,13 @@ set -euo pipefail
 
 SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
-MANIFEST="$REPO_ROOT/manifest/tools.json"
+CATALOG="$REPO_ROOT/manifest/catalog.json"
+LOCAL_MANIFEST="${DEVENV_MANIFEST:-$HOME/tools/manifest/tools.json}"
+if [ -f "$LOCAL_MANIFEST" ]; then
+    MANIFEST="$LOCAL_MANIFEST"
+else
+    MANIFEST="$CATALOG"
+fi
 
 # Look where the bootstrap installs things, regardless of the caller's PATH.
 export PATH="$HOME/.local/bin:$HOME/tools/bin:$HOME/.cargo/bin:$PATH"
@@ -26,7 +32,7 @@ info() { printf '%s•%s %s\n' "$(_c 90)" "$(_c 0)" "$*"; }
 bad()  { printf '%s✗%s %s\n' "$(_c 31)" "$(_c 0)" "$*"; }
 
 require_manifest() {
-    [ -f "$MANIFEST" ] || { bad "manifest not found: $MANIFEST"; exit 1; }
+    [ -f "$MANIFEST" ] || { bad "inventory/catalog not found: $MANIFEST"; exit 1; }
 }
 
 _env_version() {
@@ -40,6 +46,7 @@ cmd_report() {
     local repo_ver; repo_ver="$(cat "$REPO_ROOT/VERSION" 2>/dev/null | tr -d '[:space:]' || echo "unknown")"
     printf '%sDev environment inventory%s  (%s tools)\n' "$(_c 1)" "$(_c 0)" "$total"
     printf '%senv version:%s  %s  %s(repo: %s)%s\n' "$(_c 1)" "$(_c 0)" "$(_env_version)" "$(_c 90)" "$repo_ver" "$(_c 0)"
+    printf '%ssource:%s       %s\n' "$(_c 1)" "$(_c 0)" "$MANIFEST"
     jq -r '
         group_by(.group)[]
         | "\n" + (.[0].group | ascii_upcase) + ":",
@@ -393,7 +400,7 @@ cmd_upgrade() {
     # ── npm global ────────────────────────────────────────────────────────────
     local do_npm=0
     if [ -n "$target" ]; then
-        jq -e --arg t "$target" '.[] | select(.name==$t and .install_method=="npm-global")' \
+        jq -e --arg t "$target" '.[] | select(.name==$t and .install_method=="npm-user")' \
             "$MANIFEST" >/dev/null 2>&1 && do_npm=1 || true
     else
         do_npm=1

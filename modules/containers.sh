@@ -27,6 +27,10 @@ containers_docker_engine() {
         log_skip "docker already present ($(docker --version 2>/dev/null)) — not installing engine (Docker Desktop integration?)"
         return 0
     fi
+    if is_dry_run; then
+        log_info "[DRY-RUN] would add Docker apt repo and install Docker Engine + Compose"
+        return 0
+    fi
     local arch codename
     arch="$(dpkg --print-architecture)"
     codename="$(. /etc/os-release && echo "${VERSION_CODENAME:-}")"
@@ -51,6 +55,7 @@ containers_docker_engine() {
 # Enable + start the daemon when systemd is the init system; otherwise explain.
 containers_docker_service() {
     has docker || return 0
+    if is_dry_run; then log_info "[DRY-RUN] would enable/start docker service when systemd is present"; return 0; fi
     if [ -d /run/systemd/system ]; then
         if sudo systemctl enable --now docker >/dev/null 2>&1; then
             log_ok "docker service enabled + started (systemd)"
@@ -65,6 +70,7 @@ containers_docker_service() {
 # Add the user to the docker group so docker runs without sudo (next login).
 containers_docker_group() {
     has docker || return 0
+    if is_dry_run; then log_info "[DRY-RUN] would ensure docker group membership for $USER"; return 0; fi
     getent group docker >/dev/null || sudo groupadd docker
     if id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
         log_skip "$USER already in docker group"

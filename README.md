@@ -1,6 +1,6 @@
 # ai-dev-envbuild
 
-> **Environment version: 1.3.1** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
+> **Environment version: 1.5.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
 
 Reproducible, idempotent, agent-discoverable **Debian/Ubuntu/WSL2 development
 environment** — a broad "Swiss army knife" workstation (modern dev, legacy
@@ -32,14 +32,14 @@ what's installed before touching anything. Full rationale:
 
 | Group | Default | Installs |
 |---|:---:|---|
-| `core` | ✅ | git, build toolchain, ripgrep/fd/fzf/bat/jq/delta, tmux, shellcheck, **gh**, **hyperfine**, **GNU time** (+ folders, PATH, `devtools`) |
+| `core` | ✅ | git, build toolchain, ripgrep/fd/fzf/bat/jq/delta, tmux, shellcheck, **gh**, **hyperfine**, **GNU time**, **ncdu/duf**, **age/sops**, **direnv**, **just** (+ folders, PATH, `devtools`) |
 | `python` | ✅ | pipx, uv (also Python versions), ruff, ipython, jupyterlab |
 | `node` | ✅ | Node.js (NodeSource), pnpm, tsx |
 | `languages` | ✅ | Rust (rustup + **rust-analyzer**), Go, OpenJDK + Maven, .NET |
 | `reverse` | ✅ | radare2, binwalk, exiftool, tshark, foremost, **headless DOSBox-X**, frida, **Ghidra** |
-| `data` | ✅ | DuckDB CLI, sqlite-utils, csvkit |
+| `data` | ✅ | DuckDB CLI, sqlite-utils, csvkit, **rclone** |
 | `docs` | ✅ | pandoc, markdownlint-cli |
-| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython) |
+| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **yt-dlp**, **aria2** |
 | `containers` | ✅ | Docker Engine + Compose, devcontainer CLI |
 | `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7 for Claude Code, Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
@@ -64,8 +64,10 @@ devtools doctor   # PATH, shellrc, runtimes, docker daemon health
 devtools outdated # check for newer versions (apt/pipx/rustup/npm + GitHub releases)
 ```
 
-The inventory lives in [`manifest/tools.json`](manifest/tools.json) — the source
-of truth agents consult before installing anything. Agent rules:
+The live inventory lives in `~/tools/manifest/tools.json` and is generated from
+this workstation's actual installed tools. The repo carries
+[`manifest/catalog.json`](manifest/catalog.json) as a pre-bootstrap fallback
+catalog. Agent rules:
 [`docs/agent-rules.md`](docs/agent-rules.md).
 
 ### Agents auto-discover the environment
@@ -87,8 +89,8 @@ This repo:
 bootstrap.sh         entry point
 lib/common.sh        shared helpers (has, apt_install, pipx_install, npm_global, …)
 modules/*.sh         one file per install group (core … containers, mcp, optional-*)
-mcp-server/          devenv MCP server — exposes manifest tools to agents
-manifest/tools.json  agent-discoverable inventory
+mcp-server/          devenv MCP server — exposes inventory tools to agents
+manifest/catalog.json pre-bootstrap fallback tool catalog
 bin/devtools         report / check / doctor / outdated
 bin/smoke-test       end-to-end toolchain gate
 hooks/pre-commit     blocks commits on manifest drift
@@ -101,6 +103,7 @@ What it sets up in your home directory:
 ~/projects/          active work (Linux filesystem — never /mnt/c)
 ~/sandboxes/         throwaway / untrusted analysis
 ~/tools/bin/         user scripts + tool shims on PATH (devtools, fd, bat, …)
+~/tools/manifest/    generated machine-local inventory (tools.json; not committed)
 ~/tools/shellrc.sh   generated shell config, sourced once from ~/.bashrc
 ~/tools/logs/        bootstrap run logs
 ```
@@ -140,7 +143,7 @@ The repo carries a [`VERSION`](VERSION) file (semver). Every `bootstrap.sh` run
 stamps the installed version and date into `~/tools/env-version`:
 
 ```text
-1.3.1  2026-06-10
+1.5.0  2026-06-11
 ```
 
 `devtools report` shows the installed version at the top. `devtools doctor`
@@ -152,6 +155,8 @@ a new tool is added or a group is meaningfully changed.
 
 | Version | Change |
 |---------|--------|
+| **1.5.0** | Adds `aria2`, `rclone`, `ncdu`, `duf`, `age`, `sops`, `direnv`, and `just`, plus smoke-test coverage for the new workflow tools. |
+| **1.4.0** | `image` installs and records `yt-dlp` via pipx for media downloads; `ffmpeg` in the same group handles muxing, audio extraction, and conversion. |
 | **1.3.1** | `optional-gpu` records the FLUX.1-Fill-dev checkpoint (~55 GB, non-commercial license) via presence-shim and corrects the SDXL size (~20 GB) — both recorded only when already cached, never auto-downloaded. |
 | **1.3.0** | Codex MCP registration (`~/.codex/config.toml`); Claude Code MCP moved to **user scope** (`~/.claude.json`) so servers load by default everywhere — the old `~/.mcp.json` was never read from `$HOME`. See `CHANGELOG.md` for the managed-allowlist gotcha. |
 | **1.2.0** | `devtools outdated` live GitHub-release checks (`source_repo`); SHA256 pinning (`verify_sha256`); `--dry-run`; pre-commit gate wired via `core.hooksPath`; CI (shellcheck + manifest JSON); MCP server denylist; cross-platform `detect` fallback |
@@ -164,10 +169,10 @@ a new tool is added or a group is meaningfully changed.
 edit the right `modules/<group>.sh` — install it in `*_install` (guarded with
 `has`) and record it in `*_record_manifest` (`manifest_add …`, guarded with
 `if has <bin>`); then **run `./bootstrap.sh --only <group>`** to install it and
-regenerate the manifest (never hand-edit `manifest/tools.json`); then **gate the
-push on a green `devtools check` AND `smoke-test`** (a red smoke-test is a broken
-build — fix before pushing); only then commit + push so other machines get it via
-`git pull && ./bootstrap.sh`.
+update the local inventory (never hand-edit `~/tools/manifest/tools.json`); then
+**gate the push on a green `devtools check` AND `smoke-test`** (a red smoke-test
+is a broken build — fix before pushing); only then commit + push so other
+machines get it via `git pull && ./bootstrap.sh`.
 
 **Add a whole new group:** drop a `modules/<name>.sh` defining `<name>_desc` and
 `<name>_install`, and add `<name>` to the group list in `bootstrap.sh`.

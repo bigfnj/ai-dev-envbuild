@@ -3,10 +3,11 @@
 # numpy, scikit-learn, pytorch, …) are PROJECT-LOCAL via uv, never global.
 # sqlite3 itself lives in the core group.
 
-data_desc() { echo "duckdb CLI, sqlite-utils, csvkit"; }
+data_desc() { echo "duckdb CLI, sqlite-utils, csvkit, rclone"; }
 
 data_install() {
     data_duckdb
+    apt_install rclone         # cloud/local sync and artifact movement
     pipx_install sqlite-utils   # SQLite automation/CLI
     pipx_install csvkit         # csvlook, csvcut, csvstat, in2csv, …
     data_record_manifest
@@ -41,6 +42,7 @@ data_duckdb() {
 
 data_record_manifest() {
     if has duckdb;       then manifest_add duckdb       duckdb       data global github-zip "duckdb --version"       core "in-process analytical SQL over CSV/Parquet/JSON" "" "duckdb/duckdb"; fi
+    if has rclone;       then manifest_add rclone       rclone       data global apt        "rclone version"          core "cloud/local sync and artifact movement"; fi
     if has sqlite-utils; then manifest_add sqlite-utils sqlite-utils data global pipx       "sqlite-utils --version" core "SQLite CLI + automation"; fi
     if has csvlook;      then manifest_add csvkit       csvlook      data global pipx       "csvlook --version"      core "CSV inspection/conversion (csvlook, csvcut, …)"; fi
     log_ok "manifest updated — data group"

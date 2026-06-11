@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * devenv-mcp — MCP server that exposes every globally-installed tool from
- * manifest/tools.json as a discrete Claude Code tool.
+ * ~/tools/manifest/tools.json as a discrete Claude Code tool.
  *
  * One tool per manifest entry (scope=global only). Tool names follow the
  * manifest name, sanitized to [a-zA-Z0-9_-]. Binary overrides and arg-prefix
@@ -14,7 +14,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "child_process";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -22,9 +22,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ── Manifest ─────────────────────────────────────────────────────────────────
 
-const manifest = JSON.parse(
-  readFileSync(join(__dirname, "../manifest/tools.json"), "utf8")
-);
+const localManifest =
+  process.env.DEVENV_MANIFEST ??
+  join(process.env.HOME ?? "", "tools/manifest/tools.json");
+const catalog = join(__dirname, "../manifest/catalog.json");
+const manifestPath = existsSync(localManifest) ? localManifest : catalog;
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 // ── Special-case overrides ────────────────────────────────────────────────────
 

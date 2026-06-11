@@ -30,6 +30,7 @@ languages_rust() {
         log_skip "rust already installed ($(cargo --version))"
         return 0
     fi
+    if is_dry_run; then log_info "[DRY-RUN] would install rustup"; return 0; fi
     log_info "installing rustup (profile: cargo, rustfmt, clippy)"
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     # Make cargo usable for the rest of this bootstrap run.
@@ -48,6 +49,7 @@ languages_rust_analyzer() {
         log_skip "rust-analyzer component already installed"
         return 0
     fi
+    if is_dry_run; then log_info "[DRY-RUN] would add rust-analyzer rustup component"; return 0; fi
     log_info "adding rust-analyzer rustup component"
     rustup component add rust-analyzer
 }
@@ -86,6 +88,7 @@ languages_dotnet() {
         log_skip "dotnet already installed ($(dotnet --version))"
         return 0
     fi
+    if is_dry_run; then log_info "[DRY-RUN] would add Microsoft .NET apt feed and install dotnet SDK"; return 0; fi
     local ver; ver="$(. /etc/os-release && echo "${VERSION_ID:-}")"
     local url="https://packages.microsoft.com/config/debian/${ver}/packages-microsoft-prod.deb"
     local tmp; tmp="$(mktemp --suffix=.deb)"

@@ -4,15 +4,22 @@
 # Stronger than `devtools check` (which only checks that a binary file exists):
 # this RUNS each manifest tool's detect command, then runs a few functional
 # cross-tool checks (compile + run C, create a uv venv, run TypeScript via tsx,
-# docker run hello-world). Core-tool failures make the script exit non-zero so
-# it can gate a fresh-machine provision or CI; optional-tool failures are warnings.
+# exercise utility workflows, docker run hello-world). Core-tool failures make
+# the script exit non-zero so it can gate a fresh-machine provision or CI;
+# optional-tool failures are warnings.
 #
 # Not -e: we want to run every check and tally, not abort on the first failure.
 set -uo pipefail
 
 SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
 REPO_ROOT="$(cd "$(dirname "$SCRIPT")/.." && pwd)"
-MANIFEST="$REPO_ROOT/manifest/tools.json"
+CATALOG="$REPO_ROOT/manifest/catalog.json"
+LOCAL_MANIFEST="${DEVENV_MANIFEST:-$HOME/tools/manifest/tools.json}"
+if [ -f "$LOCAL_MANIFEST" ]; then
+    MANIFEST="$LOCAL_MANIFEST"
+else
+    MANIFEST="$CATALOG"
+fi
 export PATH="$HOME/.local/bin:$HOME/tools/bin:$HOME/.cargo/bin:$PATH"
 
 _c()  { if [ -t 1 ]; then printf '\033[%sm' "$1"; fi; }
@@ -22,7 +29,7 @@ fail() { printf '%s✗%s %s\n' "$(_c 31)" "$(_c 0)" "$*"; FAIL=$((FAIL+1)); }
 warn() { printf '%s⚠%s %s\n' "$(_c 33)" "$(_c 0)" "$*"; WARN=$((WARN+1)); }
 hdr()  { printf '\n%s== %s ==%s\n' "$(_c 1)" "$*" "$(_c 0)"; }
 
-[ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
+[ -f "$MANIFEST" ] || { echo "inventory/catalog not found: $MANIFEST"; exit 1; }
 
 # ── Phase 1: run every manifest tool's detect command ─────────────────────────
 hdr "manifest tools (running detect commands)"
@@ -88,6 +95,96 @@ if command -v docker >/dev/null 2>&1; then
     fi
 else
     warn "docker not present — skipping container check"
+fi
+
+# ncdu + duf: scan/report a temporary directory without launching an interactive UI.
+if command -v ncdu >/dev/null 2>&1 && command -v duf >/dev/null 2>&1; then
+    mkdir -p "$tmp/disk"
+    printf 'ok\n' > "$tmp/disk/file.txt"
+    if ncdu -o "$tmp/ncdu-export.json" "$tmp/disk" >/dev/null 2>&1 \
+        && duf --json "$tmp/disk" >/dev/null 2>&1; then
+        ok "ncdu and duf inspect disk usage non-interactively"
+    else
+        fail "ncdu/duf disk usage check failed"
+    fi
+else
+    warn "ncdu or duf not present — skipping disk-usage check"
+fi
+
+# yt-dlp + aria2: verify downloader CLIs are ready. Network downloads are left
+# out of smoke-test so the gate stays deterministic offline.
+if command -v yt-dlp >/dev/null 2>&1 && command -v aria2c >/dev/null 2>&1; then
+    if yt-dlp --version >/dev/null 2>&1 && aria2c --version >/dev/null 2>&1; then
+        ok "yt-dlp and aria2 downloader CLIs respond"
+    else
+        fail "yt-dlp/aria2 downloader check failed"
+    fi
+else
+    warn "yt-dlp or aria2 not present — skipping downloader check"
+fi
+
+# just: run a tiny local recipe.
+if command -v just >/dev/null 2>&1; then
+    mkdir -p "$tmp/just"
+    printf 'default:\n    @echo ok\n' > "$tmp/just/justfile"
+    if [ "$(just --justfile "$tmp/just/justfile" 2>/dev/null)" = "ok" ]; then
+        ok "just runs a local recipe"
+    else
+        fail "just could not run a local recipe"
+    fi
+else
+    warn "just not present — skipping command-runner check"
+fi
+
+# age + sops: create an age key, encrypt/decrypt a small YAML document.
+if command -v age >/dev/null 2>&1 && command -v age-keygen >/dev/null 2>&1; then
+    age-keygen -o "$tmp/age.key" >/dev/null 2>&1
+    age_pub="$(awk '/public key:/{print $NF; exit}' "$tmp/age.key")"
+    if printf 'ok\n' | age -r "$age_pub" -o "$tmp/plain.txt.age" >/dev/null 2>&1 \
+        && [ "$(age -d -i "$tmp/age.key" "$tmp/plain.txt.age" 2>/dev/null)" = "ok" ]; then
+        ok "age encrypts and decrypts with a generated recipient"
+    else
+        fail "age could not round-trip encrypted data"
+    fi
+
+    if command -v sops >/dev/null 2>&1; then
+        printf 'secret: ok\n' > "$tmp/plain.yaml"
+        if SOPS_AGE_KEY_FILE="$tmp/age.key" sops --encrypt --age "$age_pub" "$tmp/plain.yaml" > "$tmp/encrypted.yaml" 2>/dev/null \
+            && SOPS_AGE_KEY_FILE="$tmp/age.key" sops --decrypt "$tmp/encrypted.yaml" 2>/dev/null | grep -qx 'secret: ok'; then
+            ok "sops encrypts and decrypts YAML with age"
+        else
+            fail "sops could not round-trip YAML with age"
+        fi
+    else
+        warn "sops not present — skipping encrypted-config check"
+    fi
+else
+    warn "age not present — skipping age/sops encryption checks"
+fi
+
+# rclone: copy between local directories through rclone's local backend.
+if command -v rclone >/dev/null 2>&1; then
+    mkdir -p "$tmp/rclone-src" "$tmp/rclone-dst"
+    printf 'ok\n' > "$tmp/rclone-src/file.txt"
+    if rclone copy "$tmp/rclone-src" "$tmp/rclone-dst" >/dev/null 2>&1 \
+        && [ "$(cat "$tmp/rclone-dst/file.txt" 2>/dev/null)" = "ok" ]; then
+        ok "rclone copies files with the local backend"
+    else
+        fail "rclone could not copy with the local backend"
+    fi
+else
+    warn "rclone not present — skipping sync check"
+fi
+
+# direnv: verify the stdlib is available without allowing a project .envrc.
+if command -v direnv >/dev/null 2>&1; then
+    if direnv stdlib 2>/dev/null | grep -q 'layout_python'; then
+        ok "direnv exposes its shell stdlib"
+    else
+        fail "direnv stdlib check failed"
+    fi
+else
+    warn "direnv not present — skipping env-loader check"
 fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────

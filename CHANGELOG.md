@@ -5,6 +5,43 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-06-11
+
+### Added
+- `core` now installs and records disk/env/secrets workflow helpers: `ncdu`,
+  `duf`, `age`, `sops`, `direnv`, and `just`.
+- `data` now installs and records `rclone` for cloud/local sync and artifact
+  movement.
+- `image` now installs and records `aria2` as a resumable/parallel downloader
+  companion for `yt-dlp`.
+- `smoke-test` now includes functional checks for the new workflow tools where
+  they can be exercised offline: `just`, `age`, `sops`, `rclone`, and `direnv`.
+
+### Fixed
+- Full/default bootstrap runs now refresh the local inventory at
+  `~/tools/manifest/tools.json` from the tools actually present on the
+  workstation, preventing stale entries from optional groups or unavailable
+  best-effort installs from causing `devtools check` drift. Targeted `--only`
+  runs still preserve the existing local inventory.
+- The repo now tracks `manifest/catalog.json` as a pre-bootstrap fallback while
+  the machine-specific realized inventory stays outside git.
+
+## [1.4.0] — 2026-06-11
+
+### Added
+- `image` now installs and records `yt-dlp` via pipx for media downloads;
+  `ffmpeg` in the same group handles muxing, audio extraction, and conversion.
+
+### Fixed
+- `--dry-run` now reports intended `pipx` and npm-global installs even on a
+  bare machine where `pipx` or `npm` is not installed yet.
+- `--dry-run` skips git hook wiring and post-install writes such as agent
+  discovery files, weekly cron registration, and the environment version stamp.
+- `--dry-run` no longer writes core shell/PATH files, creates repo-bin symlinks,
+  installs vendor apt repos, enables Docker services, changes Docker group
+  membership, registers MCP configs, injects Pillow, or creates model shims.
+- `--dry-run` now logs to stdout only instead of creating a bootstrap log file.
+
 ## [1.3.1] — 2026-06-10
 
 ### Added
@@ -101,7 +138,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `manifest/tools.json` — machine-readable tool inventory.
 - Agent auto-discovery via `write_agent_discovery()` (AGENTS.md + CLAUDE.md).
 
-[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.1.0...v1.2.0

@@ -6,9 +6,9 @@
 # Tools: imagemagick, ffmpeg, Pillow (ipython-injected), rembg (bg removal),
 # realesrgan-ncnn-vulkan (AI upscaling + anime), pngquant/optipng (PNG opt),
 # gifsicle (GIF), webp (WebP encode/decode), jpegoptim (JPEG opt), heif (HEIF/AVIF),
-# huggingface-cli/hf (model download + repo management).
+# huggingface-cli/hf (model download + repo management), yt-dlp + aria2 (media download).
 
-image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), hf (HuggingFace CLI), format tools (png/gif/webp/jpeg/heif)"; }
+image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), hf (HuggingFace CLI), yt-dlp + aria2, format tools (png/gif/webp/jpeg/heif)"; }
 
 image_install() {
     apt_install imagemagick ffmpeg
@@ -17,6 +17,7 @@ image_install() {
     image_rembg
     image_realesrgan
     image_hf
+    image_ytdlp
     image_record_manifest
 }
 
@@ -28,7 +29,8 @@ image_apt_extra() {
         gifsicle \
         webp \
         jpegoptim \
-        libheif-examples
+        libheif-examples \
+        aria2
 }
 
 # Pillow — inject into ipython's isolated pipx env for global REPL use.
@@ -42,6 +44,7 @@ image_pillow() {
         log_skip "Pillow already injected into ipython"
         return 0
     fi
+    if is_dry_run; then log_info "[DRY-RUN] would pipx inject Pillow into ipython"; return 0; fi
     log_info "injecting Pillow into ipython pipx env"
     pipx inject ipython Pillow
 }
@@ -113,6 +116,12 @@ image_hf() {
     pipx install "huggingface_hub[cli]"
 }
 
+# yt-dlp — media downloader for URLs. ffmpeg from this group handles muxing,
+# audio extraction, and format conversion when requested by yt-dlp.
+image_ytdlp() {
+    pipx_install yt-dlp
+}
+
 image_record_manifest() {
     local im=""
     if has magick; then im=magick; elif has convert; then im=convert; fi
@@ -138,6 +147,7 @@ image_record_manifest() {
     if has cwebp;        then manifest_add webp         cwebp        image global apt "cwebp -version"        core "WebP encode/decode (cwebp, dwebp, webpinfo)"; fi
     if has jpegoptim;    then manifest_add jpegoptim    jpegoptim    image global apt "jpegoptim --version"   core "JPEG compression and metadata stripping"; fi
     if has heif-convert; then manifest_add libheif      heif-convert image global apt "command -v heif-convert" core "HEIF/AVIF read+write (heif-convert, heif-info)"; fi
+    if has aria2c;       then manifest_add aria2        aria2c       image global apt "aria2c --version"       core "resumable/parallel downloader; useful as yt-dlp external downloader"; fi
     if has rembg; then
         manifest_add rembg rembg image global pipx "command -v rembg" core \
             "AI background removal (u2net, ONNX; no GPU required; model ~170 MB downloads on first use)"
@@ -152,6 +162,11 @@ image_record_manifest() {
         manifest_add huggingface-cli hf image global pipx \
             "hf --help" core \
             "HuggingFace model/dataset/repo management (hf download, hf upload, hf whoami, hf models ls); also installs tiny-agents"
+    fi
+    if has yt-dlp; then
+        manifest_add yt-dlp yt-dlp image global pipx \
+            "yt-dlp --version" core \
+            "media downloader for URLs; pairs with ffmpeg for muxing, audio extraction, and format conversion"
     fi
     log_ok "manifest updated — image group"
 }
