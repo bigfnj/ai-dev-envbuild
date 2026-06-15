@@ -43,11 +43,12 @@ GPU path summary:
      to register the weights in the manifest:
        cd ~/projects/<video-project>
        uv venv --python 3.11
-       uv add torch torchvision --index https://download.pytorch.org/whl/cu126
-       uv add timm einops tensorboard opencv-python
+       uv add torch torchvision --index https://download.pytorch.org/whl/cu132
+       uv add timm einops tensorboard opencv-python scikit-image scipy ninja
        git clone https://github.com/JingyunLiang/RVRT
-       uv run python RVRT/scripts/download_pretrained_models.py RVRT
-     Run inference: uv run python RVRT/main_test_rvrt.py
+     Models auto-download to RVRT/model_zoo/rvrt/ on first inference run.
+     Run inference: uv run python RVRT/main_test_rvrt.py --task 001_RVRT_videosr_bi_REDS_30frames \
+       --folder_lq <input-frames-dir> --tile 100 128 128 --save_result
 
   4. Image-gen model checkpoints (large, optional, never auto-downloaded)
      Recorded in the manifest only when already present in the HF cache; this
@@ -177,8 +178,8 @@ SHIM
 # (~/projects/ai-helper/RVRT). Re-run ./bootstrap.sh --only optional-gpu after
 # setting up the venv and downloading weights to register the manifest entry.
 _optional_gpu_record_rvrt() {
-    local rvrt_dir="$HOME/projects/ai-helper/RVRT/experiments/pretrained_models"
-    if [ -d "$rvrt_dir" ]; then
+    local rvrt_dir="$HOME/projects/ai-helper/RVRT/model_zoo/rvrt"
+    if [ -d "$rvrt_dir" ] && compgen -G "$rvrt_dir/*.pth" > /dev/null 2>&1; then
         if is_dry_run; then log_info "[DRY-RUN] would write rvrt-video shim"; return 0; fi
         local shim="$HOME/tools/bin/rvrt-video"
         cat > "$shim" <<SHIM
@@ -188,7 +189,7 @@ SHIM
         chmod +x "$shim"
         manifest_add rvrt-video rvrt-video optional-gpu project github \
             "rvrt-video" optional \
-            "RVRT (Recurrent Video Restoration Transformer) — temporal-aware 4x video SR. Project-local in ~/projects/ai-helper/RVRT. Run: cd ~/projects/ai-helper && uv run python RVRT/main_test_rvrt.py. Setup: uv add torch torchvision --index https://download.pytorch.org/whl/cu126 && uv add timm einops tensorboard opencv-python"
+            "RVRT (Recurrent Video Restoration Transformer) — temporal-aware 4x video SR. Project-local in ~/projects/ai-helper/RVRT. Models in model_zoo/rvrt/ (auto-downloaded on first run). Run: cd ~/projects/ai-helper && uv run python RVRT/main_test_rvrt.py --task 001_RVRT_videosr_bi_REDS_30frames --folder_lq <frames-dir> --tile 100 128 128 --save_result. Setup: uv add torch torchvision --index https://download.pytorch.org/whl/cu132 && uv add timm einops tensorboard opencv-python scikit-image scipy ninja"
     fi
 }
 
