@@ -9,7 +9,7 @@
 # --gpus`). This module reports what's available and prints the canonical setup
 # paths so the choice and the cost stay explicit.
 
-optional_gpu_desc() { echo "NVIDIA GPU: nvtop, nvidia-container-toolkit, iopaint (AI inpainting), detection + guidance"; }
+optional_gpu_desc() { echo "NVIDIA GPU: nvtop, nvidia-container-toolkit, iopaint (AI inpainting), RVRT video SR — detection + guidance"; }
 
 optional_gpu_install() {
     if has nvidia-smi; then
@@ -36,7 +36,20 @@ GPU path summary:
      Project Python GPU libs still go in a project .venv via uv:
        uv add torch --index https://download.pytorch.org/whl/cu124
 
-  3. Image-gen model checkpoints (large, optional, never auto-downloaded)
+  3. Video super-resolution — RVRT / BasicVSR++ (project-local, GPU-accelerated)
+     Temporal-aware upscaling: processes frame sequences, not individual frames.
+     RVRT (Recurrent Video Restoration Transformer) is the recommended model.
+     Setup in a project venv (uv), then re-run ./bootstrap.sh --only optional-gpu
+     to register the weights in the manifest:
+       cd ~/projects/<video-project>
+       uv venv --python 3.11
+       uv add torch torchvision --index https://download.pytorch.org/whl/cu126
+       uv add timm einops tensorboard opencv-python
+       git clone https://github.com/JingyunLiang/RVRT
+       uv run python RVRT/scripts/download_pretrained_models.py RVRT
+     Run inference: uv run python RVRT/main_test_rvrt.py
+
+  4. Image-gen model checkpoints (large, optional, never auto-downloaded)
      Recorded in the manifest only when already present in the HF cache; this
      module never pulls weights itself. Fetch into a GPU project, then re-run
      ./bootstrap.sh --only optional-gpu to register them:
@@ -81,6 +94,7 @@ GUIDE
     optional_gpu_iopaint
     _optional_gpu_record_sdxl_inpaint
     _optional_gpu_record_flux_fill
+    _optional_gpu_record_rvrt
     if has iopaint; then
         manifest_add iopaint iopaint optional-gpu global pipx \
             "command -v iopaint" optional \
@@ -155,6 +169,26 @@ SHIM
         manifest_add sdxl-inpaint-checkpoint sdxl-inpaint optional-gpu container huggingface \
             "sdxl-inpaint" optional \
             "SDXL inpainting checkpoint (~20 GB on disk: fp16+fp32 variants cached; 9-ch UNet); clean mask seams vs standard inpainting. License: OpenRAIL++. Canonical: containerized GPU. Exception: if a GPU project venv exists, run from there instead. Download: cd <your-gpu-project> && uv run hf download diffusers/stable-diffusion-xl-1.0-inpainting-0.1"
+    fi
+}
+
+# RVRT — Recurrent Video Restoration Transformer. Project-local video SR model.
+# Recorded only when the pretrained weights are present in a known project
+# (~/projects/ai-helper/RVRT). Re-run ./bootstrap.sh --only optional-gpu after
+# setting up the venv and downloading weights to register the manifest entry.
+_optional_gpu_record_rvrt() {
+    local rvrt_dir="$HOME/projects/ai-helper/RVRT/experiments/pretrained_models"
+    if [ -d "$rvrt_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would write rvrt-video shim"; return 0; fi
+        local shim="$HOME/tools/bin/rvrt-video"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$rvrt_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add rvrt-video rvrt-video optional-gpu project github \
+            "rvrt-video" optional \
+            "RVRT (Recurrent Video Restoration Transformer) — temporal-aware 4x video SR. Project-local in ~/projects/ai-helper/RVRT. Run: cd ~/projects/ai-helper && uv run python RVRT/main_test_rvrt.py. Setup: uv add torch torchvision --index https://download.pytorch.org/whl/cu126 && uv add timm einops tensorboard opencv-python"
     fi
 }
 
