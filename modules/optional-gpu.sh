@@ -21,6 +21,7 @@ optional_gpu_install() {
 
         optional_gpu_nvtop
         optional_gpu_container_toolkit
+        optional_gpu_nvcc
 
         cat <<'GUIDE'
 
@@ -106,6 +107,27 @@ GUIDE
 
 optional_gpu_nvtop() {
     apt_install nvtop
+}
+
+# cuda-nvcc-13-1 — CUDA compiler for JIT-compiling project CUDA C++ extensions
+# (e.g. RVRT deform_attn). Installs to /usr/local/cuda-13.1/bin/nvcc (not on
+# PATH by default). Symlinked into ~/tools/bin so it's accessible from shell.
+# Set CUDA_HOME=/usr/local/cuda-13.1 when building torch cpp_extensions.
+optional_gpu_nvcc() {
+    local nvcc_bin="/usr/local/cuda-13.1/bin/nvcc"
+    if [ ! -x "$nvcc_bin" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would apt install cuda-nvcc-13-1"; return 0; fi
+        apt_install cuda-nvcc-13-1
+    fi
+    if [ -x "$nvcc_bin" ]; then
+        ln -sf "$nvcc_bin" "$HOME/tools/bin/nvcc"
+        log_ok "nvcc -> $nvcc_bin (symlinked to ~/tools/bin/nvcc)"
+        manifest_add cuda-nvcc nvcc optional-gpu global apt \
+            "nvcc --version" optional \
+            "CUDA compiler 13.1 at /usr/local/cuda-13.1/bin/nvcc; symlinked to ~/tools/bin/nvcc. Use CUDA_HOME=/usr/local/cuda-13.1 when building torch cpp_extensions (e.g. RVRT deform_attn). Installed only when GPU present."
+    else
+        log_err "cuda-nvcc-13-1 install failed — nvcc not found at $nvcc_bin"
+    fi
 }
 
 optional_gpu_container_toolkit() {
