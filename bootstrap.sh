@@ -15,7 +15,7 @@ export REPO_ROOT
 # shellcheck source=lib/common.sh
 . "$REPO_ROOT/lib/common.sh"
 
-DEFAULT_GROUPS=(core python node languages reverse data docs image containers mcp claude)
+DEFAULT_GROUPS=(core python node languages reverse data docs office image containers mcp claude)
 OPTIONAL_GROUPS=(optional-heavy optional-gpu)
 ALL_GROUPS=("${DEFAULT_GROUPS[@]}" "${OPTIONAL_GROUPS[@]}")
 

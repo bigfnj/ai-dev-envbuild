@@ -187,6 +187,66 @@ else
     warn "direnv not present — skipping env-loader check"
 fi
 
+# tesseract: verify binary starts and English language data is present.
+if command -v tesseract >/dev/null 2>&1; then
+    if tesseract --list-langs 2>/dev/null | grep -q '^eng$'; then
+        ok "tesseract has English language data"
+    else
+        fail "tesseract: English language data missing (apt install tesseract-ocr-eng)"
+    fi
+else
+    warn "tesseract not present — skipping OCR check"
+fi
+
+# ghostscript: interpret a minimal PostScript program.
+if command -v gs >/dev/null 2>&1; then
+    if printf '%%PS\n(ok) =\n' | gs -q -dNOPAUSE -dBATCH -sDEVICE=nullpage - >/dev/null 2>&1; then
+        ok "ghostscript interprets PostScript"
+    else
+        fail "ghostscript could not interpret a minimal PostScript program"
+    fi
+else
+    warn "ghostscript not present — skipping PS interpreter check"
+fi
+
+# qpdf + pdfinfo: create a minimal PDF with qpdf, then inspect it with pdfinfo.
+if command -v qpdf >/dev/null 2>&1 && command -v pdfinfo >/dev/null 2>&1; then
+    if qpdf --empty "$tmp/smoke.pdf" >/dev/null 2>&1 \
+        && pdfinfo "$tmp/smoke.pdf" >/dev/null 2>&1; then
+        ok "qpdf creates a valid PDF; pdfinfo reads it"
+    else
+        fail "qpdf/pdfinfo PDF utilities check failed"
+    fi
+else
+    warn "qpdf or pdfinfo not present — skipping PDF utilities check"
+fi
+
+# libreoffice headless: confirm soffice starts without a display.
+if command -v soffice >/dev/null 2>&1; then
+    if soffice --headless --version >/dev/null 2>&1; then
+        ok "libreoffice headless is available"
+    else
+        fail "soffice --headless --version failed"
+    fi
+else
+    warn "libreoffice not present — skipping office headless check"
+fi
+
+# ipython office + data libs: all five must be importable.
+if command -v ipython >/dev/null 2>&1; then
+    missing_libs=()
+    for lib in docx pptx openpyxl pandas numpy; do
+        ipython -c "import $lib" >/dev/null 2>&1 || missing_libs+=("$lib")
+    done
+    if [ ${#missing_libs[@]} -eq 0 ]; then
+        ok "ipython: docx, pptx, openpyxl, pandas, numpy all importable"
+    else
+        fail "ipython: missing injected libs: ${missing_libs[*]}"
+    fi
+else
+    warn "ipython not present — skipping office/data lib check"
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 hdr "summary"
 printf '%s%d passed%s, %s%d warnings%s, %s%d failed%s\n' \
