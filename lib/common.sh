@@ -95,6 +95,12 @@ ensure_dir() {
 
 backup_file() {
     [ -f "$1" ] || return 0
+    # Skip if the most recent backup is byte-identical — nothing changed
+    local last_bak
+    last_bak="$(ls -t "${1}.bak-"* 2>/dev/null | head -1)"
+    if [ -n "$last_bak" ] && cmp -s "$1" "$last_bak"; then
+        return 0
+    fi
     local b
     b="$1.bak-$(date +%Y%m%d-%H%M%S)"
     cp "$1" "$b"
