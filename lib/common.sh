@@ -99,15 +99,19 @@ backup_file() {
     mkdir -p "$BAK_DIR"
     local stem
     stem="$(basename "$1")"
-    # Skip if the most recent backup is byte-identical — nothing changed
-    local last_bak
-    last_bak="$(ls -t "$BAK_DIR/${stem}.bak-"* 2>/dev/null | head -1)"
+    # Skip if the most recent backup is byte-identical — nothing changed.
+    # || true on both ls calls: with set -eo pipefail, ls exiting non-zero
+    # (no matching files) would abort the whole bootstrap without it.
+    local last_bak=""
+    last_bak="$(ls -t "$BAK_DIR/${stem}.bak-"* 2>/dev/null | head -1 || true)"
     if [ -n "$last_bak" ] && cmp -s "$1" "$last_bak"; then
         return 0
     fi
     # Enforce 3-backup limit: drop oldest before adding new one
-    local old_baks
-    mapfile -t old_baks < <(ls -t "$BAK_DIR/${stem}.bak-"* 2>/dev/null)
+    local old_baks=()
+    while IFS= read -r f; do
+        [ -n "$f" ] && old_baks+=("$f")
+    done < <(ls -t "$BAK_DIR/${stem}.bak-"* 2>/dev/null || true)
     if [ "${#old_baks[@]}" -ge 3 ]; then
         rm -f "${old_baks[@]:2}"
     fi
