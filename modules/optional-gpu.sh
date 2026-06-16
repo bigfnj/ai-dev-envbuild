@@ -116,7 +116,16 @@ optional_gpu_nvtop() {
 optional_gpu_nvcc() {
     local nvcc_bin="/usr/local/cuda-13.1/bin/nvcc"
     if [ ! -x "$nvcc_bin" ]; then
-        if is_dry_run; then log_info "[DRY-RUN] would apt install cuda-nvcc-13-1"; return 0; fi
+        if is_dry_run; then log_info "[DRY-RUN] would apt install cuda-nvcc-13-1 (requires CUDA apt repo)"; return 0; fi
+        # cuda-nvcc-13-1 lives in the NVIDIA CUDA apt repository, not standard Ubuntu.
+        # If the repo isn't configured, warn and skip rather than aborting the whole bootstrap.
+        if ! apt-cache show cuda-nvcc-13-1 >/dev/null 2>&1; then
+            log_warn "cuda-nvcc-13-1 not in apt index — add the CUDA apt repo first:"
+            log_info "  wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb"
+            log_info "  sudo dpkg -i cuda-keyring_1.1-1_all.deb && sudo apt-get update"
+            log_info "  Then re-run: ./bootstrap.sh --only optional-gpu"
+            return 0
+        fi
         apt_install cuda-nvcc-13-1
     fi
     if [ -x "$nvcc_bin" ]; then

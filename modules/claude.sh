@@ -29,7 +29,7 @@ const dest = process.env.CLAUDE_SETTINGS;
 const cfg = JSON.parse(readFileSync(dest, "utf8"));
 // Owned keys — set unconditionally; all other keys in the file are untouched
 cfg.model                 = "claude-opus-4-8";
-cfg.effortLevel           = "high";
+cfg.effortLevel           = "xhigh";
 cfg.alwaysThinkingEnabled = true;
 cfg.showThinkingSummaries = false;
 cfg.fastMode              = true;
@@ -39,7 +39,7 @@ cfg.permissions.defaultMode = "auto";
 writeFileSync(dest, JSON.stringify(cfg, null, 2) + "\n");
 EOF
     log_ok "Claude Code  → $dest"
-    log_ok "  effortLevel=high  fastMode=true  defaultMode=auto  showThinkingSummaries=false"
+    log_ok "  effortLevel=xhigh  fastMode=true  defaultMode=auto  showThinkingSummaries=false"
 
     # Write settings.local.json — this file loads after remote-settings.json and
     # overrides the enterprise-default model (Sonnet) with the user preference (Opus).
