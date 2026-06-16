@@ -209,16 +209,19 @@ else
     warn "ghostscript not present — skipping PS interpreter check"
 fi
 
-# qpdf + pdfinfo: create a minimal PDF with qpdf, then inspect it with pdfinfo.
-if command -v qpdf >/dev/null 2>&1 && command -v pdfinfo >/dev/null 2>&1; then
-    if qpdf --empty "$tmp/smoke.pdf" >/dev/null 2>&1 \
-        && pdfinfo "$tmp/smoke.pdf" >/dev/null 2>&1; then
-        ok "qpdf creates a valid PDF; pdfinfo reads it"
+# qpdf + pdfinfo: use ghostscript to create a 1-page PDF (qpdf --empty produces
+# a 0-page file that poppler 26+ rejects), then verify qpdf can linearize it and
+# pdfinfo can read it.
+if command -v qpdf >/dev/null 2>&1 && command -v pdfinfo >/dev/null 2>&1 && command -v gs >/dev/null 2>&1; then
+    if gs -q -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile="$tmp/smoke.pdf" -c "showpage" >/dev/null 2>&1 \
+        && qpdf --linearize "$tmp/smoke.pdf" "$tmp/smoke-lin.pdf" >/dev/null 2>&1 \
+        && pdfinfo "$tmp/smoke-lin.pdf" >/dev/null 2>&1; then
+        ok "qpdf linearizes a PDF; pdfinfo reads it"
     else
         fail "qpdf/pdfinfo PDF utilities check failed"
     fi
 else
-    warn "qpdf or pdfinfo not present — skipping PDF utilities check"
+    warn "qpdf, pdfinfo, or gs not present — skipping PDF utilities check"
 fi
 
 # libreoffice headless: confirm soffice starts without a display.
