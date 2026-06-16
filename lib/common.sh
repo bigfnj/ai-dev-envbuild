@@ -168,7 +168,11 @@ Every inventory tool is runnable directly from the shell — \`devtools report\`
 lists them all. (A \`devenv\` MCP server also exposes them as MCP tools, but
 managed MCP policy may block it; the shell path always works.)
 
-Full rules: $REPO_ROOT/docs/agent-rules.md
+Full install rules:  $REPO_ROOT/docs/agent-rules.md
+Tool usage guide:    $REPO_ROOT/docs/tools-reference.md
+  (covers: tesseract, ghostscript, poppler, qpdf, soffice, ipython office/data
+   libs, realesrgan, rembg, iopaint, yt-dlp, r2, ghidra-headless, frida,
+   dosbox-x-headless, duckdb, sqlite-utils, csvkit, hf, age+sops, ffmpeg)
 
 ## Install rules (follow exactly — violations cause environment rot)
 
