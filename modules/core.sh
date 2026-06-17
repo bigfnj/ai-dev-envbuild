@@ -44,6 +44,8 @@ core_packages() {
         git curl wget unzip zip tar ca-certificates gnupg \
         build-essential pkg-config make cmake ninja-build \
         gcc g++ clang gdb lldb valgrind strace \
+        autoconf automake libtool \
+        qt6-base-dev qt6-tools-dev qt6-tools-dev-tools \
         ripgrep fd-find fzf bat git-delta jq yq tree sqlite3 \
         tmux entr socat htop btop ncdu duf shellcheck shfmt \
         age direnv just \
@@ -113,6 +115,7 @@ core_record_manifest() {
         "git:git" "curl:curl" "wget:wget" "unzip:unzip" "zip:zip" "tar:tar"
         "make:make" "cmake:cmake" "ninja-build:ninja" "gcc:gcc" "g++:g++"
         "clang:clang" "gdb:gdb" "lldb:lldb" "valgrind:valgrind" "strace:strace"
+        "autoconf:autoconf" "automake:automake" "libtool:libtool"
         "ripgrep:rg" "fd-find:fdfind" "fzf:fzf" "bat:batcat" "git-delta:delta"
         "jq:jq" "yq:yq" "tree:tree" "sqlite3:sqlite3" "tmux:tmux" "entr:entr"
         "socat:socat" "htop:htop" "btop:btop" "ncdu:ncdu" "duf:duf"
@@ -137,6 +140,8 @@ core_record_manifest() {
     if has sshpass; then manifest_add sshpass sshpass core global apt "sshpass -V" core "non-interactive SSH password auth"; fi
     if has expect;  then manifest_add expect  expect  core global apt "expect -version"    core "scripted interactive CLI automation"; fi
     if has sops;    then manifest_add sops    sops    core global github-deb "sops --version" core "encrypted YAML/JSON/env files; pairs well with age recipients" "age" "getsops/sops"; fi
+    if has qmake6;  then manifest_add qt6-base-dev qmake6 core global apt "qmake6 --version" core "Qt6 dev headers + CMake integration; required for Qt6 CMake projects"; fi
+    if [ -x /usr/lib/qt6/bin/lupdate ]; then manifest_add qt6-tools-dev lupdate core global apt "/usr/lib/qt6/bin/lupdate -version" core "Qt6 linguist tools (lupdate/lrelease); required for LinguistTools CMake component"; fi
     # GNU time — /usr/bin/time (separate from the shell builtin `time`).
     if [ -x /usr/bin/time ]; then
         manifest_add gnu-time time core global apt "/usr/bin/time --version" core "GNU time — resource usage + CPU stats; invoke as /usr/bin/time (not shell builtin)"
