@@ -7,7 +7,7 @@
 # stay project-local per the global-vs-project boundary. Aider is a global CLI tool
 # (pipx) — invoked by name from any project, does not import into a project venv.
 
-agent_coding_desc() { echo "Ollama + VRAM-aware coder model + aider + Continue ext — local agent coding stack (requires --with)"; }
+agent_coding_desc() { echo "Ollama + VRAM-aware model fleet + aider + Continue ext — local agent coding stack (requires --with)"; }
 
 agent_coding_install() {
     local vram_mb=0
@@ -26,6 +26,7 @@ agent_coding_install() {
     agent_coding_pull_model "$vram_mb"
     agent_coding_record_manifest "$vram_mb"
 
+    local primary; primary="$(agent_coding_model_tag "$vram_mb")"
     cat <<GUIDE
 
 agent-coding setup complete.
@@ -33,19 +34,22 @@ agent-coding setup complete.
   Start the daemon (runs in background, ~0 VRAM idle):
     ollama serve
 
-  Selected model for ${vram_mb} MB VRAM:
-    $(agent_coding_model_name "$vram_mb")
-  Pull it (first request auto-pulls, or pre-pull):
-    ollama pull $(agent_coding_model_tag "$vram_mb")
+  Model fleet that fits ${vram_mb} MB VRAM (loaded on demand, one at a time):
+$(agent_coding_fleet_fits "$vram_mb" | while read -r t; do printf '    %-34s %s\n' "$t" "$(agent_coding_model_name_for_tag "$t")"; done)
+
+  Default for aider/Continue (best coder that fits):  ollama/$primary
+
+  Pre-pull the fleet (first request also auto-pulls):
+$(agent_coding_fleet_fits "$vram_mb" | while read -r t; do printf '    ollama pull %s\n' "$t"; done)
 
   Pair-program with aider:
-    aider --model ollama/$(agent_coding_model_tag "$vram_mb")
+    aider --model ollama/$primary
 
   VS Code: Continue extension installed — open the Continue sidebar
   and set your provider to Ollama (http://localhost:11434).
 
-  Auto-start on WSL boot (already installed as user systemd unit):
-    systemctl --user enable --now ollama
+  Auto-start on boot (system service, installed by the ollama .deb):
+    sudo systemctl enable --now ollama
 
 GUIDE
 }
@@ -56,32 +60,58 @@ agent_coding_gpu_vram_mb() {
         | head -1 | tr -d ' ' || echo 0
 }
 
-# Given VRAM in MB, pick the largest model that fits.
-# Ollama tag format: qwen2.5vl:<size>b (no dash, no -instruct suffix)
-# Vision models need extra VRAM for the multimodal projector (CLIP + projector +
-# vision encoder). After real-world testing, 32B needs >24 GB even on a "free"
-# 4090. Conservative tiers:
-#   7B  ~6 GB  — fits 8 GB+ cards comfortably, best quality/size tradeoff
-#   3B  ~3 GB  — fits 4 GB cards or when you need headroom for other models
+# The agent-coding model fleet. One pipe-delimited record per model:
+#   tag | role | approx_gb | min_vram_mb | capabilities | human name
+# Every member is tools-capable (function calling) so it drives aider/Continue.
+# min_vram_mb = weights + KV cache (+ vision projector where applicable). Models
+# load one at a time, so on a 24 GB card every member fits individually.
+# Tags are verified against the Ollama registry — the thinking build ships only
+# quant-suffixed tags (there is no bare :30b-a3b-thinking-2507 alias).
+agent_coding_fleet() {
+    cat <<'FLEET'
+qwen3-coder:30b|coder|18|22000|tools|Qwen3-Coder 30B-A3B (MoE — best agentic coder)
+qwen3:30b-a3b-thinking-2507-q4_K_M|thinking|19|22000|tools,thinking|Qwen3 30B-A3B Thinking (reasoning + code)
+mistral-small3.2:24b|vision|15|18000|tools,vision|Mistral Small 3.2 24B (vision + tools)
+qwen3-vl:8b|vision-small|6|8000|tools,vision,thinking|Qwen3-VL 8B (vision + tools + thinking)
+FLEET
+}
+
+# Fleet tags whose min_vram_mb <= available VRAM (largest first).
+agent_coding_fleet_fits() {
+    local vram_mb="${1:-0}"
+    agent_coding_fleet | while IFS='|' read -r tag role gb minv caps name; do
+        [ -n "$tag" ] && [ "$vram_mb" -ge "$minv" ] && echo "$tag"
+    done
+}
+
+# One field of a fleet record by tag. $2 = field index (2=role 3=gb 4=min 5=caps 6=name).
+agent_coding_fleet_field() {
+    agent_coding_fleet | awk -F'|' -v t="$1" -v f="$2" '$1==t{print $f; exit}'
+}
+
+# Human name for a tag (falls back to the tag itself if not in the fleet).
+agent_coding_model_name_for_tag() {
+    local n; n="$(agent_coding_fleet_field "$1" 6)"
+    [ -n "$n" ] && echo "$n" || echo "$1"
+}
+
+# Default (primary) model for a given VRAM: the best *coder* that fits.
+#   >=22 GB  qwen3-coder:30b       (18 GB MoE — top coding/agentic, needs a 24 GB card)
+#   >=16 GB  mistral-small3.2:24b  (15 GB — vision + tools, solid general/code)
+#   >= 8 GB  qwen3-vl:8b           (6 GB — vision + tools + thinking)
+#    < 8 GB  qwen3-vl:8b           (best effort; offloads to CPU and runs slow)
 agent_coding_model_tag() {
     local vram_mb="${1:-0}"
-    if [ "$vram_mb" -ge 12000 ]; then
-        echo "qwen2.5vl:7b"
-    elif [ "$vram_mb" -ge 5000 ]; then
-        echo "qwen2.5vl:3b"
-    else
-        echo "qwen2.5-coder:7b"
+    if   [ "$vram_mb" -ge 22000 ]; then echo "qwen3-coder:30b"
+    elif [ "$vram_mb" -ge 16000 ]; then echo "mistral-small3.2:24b"
+    elif [ "$vram_mb" -ge 8000 ];  then echo "qwen3-vl:8b"
+    else                                 echo "qwen3-vl:8b"
     fi
 }
 
+# Human name of the primary model for a given VRAM (used by GUIDE/manifest).
 agent_coding_model_name() {
-    local tag; tag="$(agent_coding_model_tag "$1")"
-    case "$tag" in
-        *32b*) echo "Qwen2.5-VL 32B (vision-coder, ~21 GB)" ;;
-        *7b*)  echo "Qwen2.5-VL 7B (vision-coder, ~6 GB)" ;;
-        *3b*)  echo "Qwen2.5-VL 3B (vision-coder, ~3 GB)" ;;
-        *)     echo "Qwen2.5-Coder 7B (text-only, ~4 GB)" ;;
-    esac
+    agent_coding_model_name_for_tag "$(agent_coding_model_tag "$1")"
 }
 
 agent_coding_ollama() {
@@ -103,47 +133,39 @@ agent_coding_ollama() {
     rm -f "$deb"
 }
 
+# Ensure the daemon runs as the .deb-provided SYSTEM service (User=ollama, models in
+# /usr/share/ollama/.ollama/models). The ollama .deb installs and enables this unit,
+# so we just make sure it's enabled+started. We deliberately do NOT add a per-user
+# unit: two enabled services racing for :11434 is a real bug — after a reboot the
+# system unit wins the port and you silently serve the wrong model store.
 agent_coding_ollama_service() {
-    if is_dry_run; then log_info "[DRY-RUN] would install ollama user systemd service"; return 0; fi
+    if is_dry_run; then log_info "[DRY-RUN] would ensure system ollama.service is enabled+started"; return 0; fi
     has ollama || { log_warn "ollama not installed — skipping service setup"; return 0; }
 
-    local unit_dir="$HOME/.config/systemd/user"
-    ensure_dir "$unit_dir"
+    # Remove any legacy per-user unit written by earlier versions of this module,
+    # so it can't race the system service for the port.
+    local legacy="$HOME/.config/systemd/user/ollama.service"
+    if [ -f "$legacy" ]; then
+        systemctl --user disable --now ollama 2>/dev/null || true
+        rm -f "$legacy"
+        rm -rf "$HOME/.config/systemd/user/ollama.service.d"
+        systemctl --user daemon-reload 2>/dev/null || true
+        log_ok "removed legacy per-user ollama unit (system service is canonical)"
+    fi
 
-    local unit="$unit_dir/ollama.service"
-    if [ -f "$unit" ] && grep -q "ExecStart=ollama serve" "$unit" 2>/dev/null; then
-        log_skip "ollama systemd unit already present"
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log_info "systemctl not available — start ollama manually with: ollama serve"
         return 0
     fi
 
-    cat > "$unit" <<'UNIT'
-[Unit]
-Description=Ollama local LLM daemon
-After=network.target
-
-[Service]
-Type=simple
-Restart=on-failure
-RestartSec=5
-ExecStart=ollama serve
-Environment=HOME=%h
-
-# Hardening (daemon needs socket access only)
-NoNewPrivileges=true
-PrivateTmp=true
-
-[Install]
-WantedBy=default.target
-UNIT
-
-    chmod 644 "$unit"
-    log_ok "ollama user systemd unit written -> $unit"
-
-    if command -v systemctl >/dev/null 2>&1; then
-        systemctl --user daemon-reload 2>/dev/null || true
-        log_info "run 'systemctl --user enable --now ollama' to start the daemon"
+    if systemctl list-unit-files ollama.service >/dev/null 2>&1; then
+        if sudo systemctl enable --now ollama 2>/dev/null; then
+            log_ok "system ollama.service enabled + started (User=ollama, :11434)"
+        else
+            log_warn "could not enable system ollama.service — check: systemctl status ollama"
+        fi
     else
-        log_info "systemctl not available — start ollama manually with: ollama serve"
+        log_warn "system ollama.service not found — the ollama .deb normally installs it; start manually: ollama serve"
     fi
 }
 
@@ -177,43 +199,37 @@ agent_coding_vscode_extension() {
     fi
 }
 
-# Pull the VRAM-appropriate model. Guarded: skips if already present.
-# NOTE: not auto-pulled during bootstrap (19 GB download would hang the run).
-# The daemon auto-pulls on first inference request; run manually to pre-cache.
+# Report the fleet that fits this VRAM, flagging which models are already present.
+# NOTE: not auto-pulled during bootstrap (tens of GB would hang the run).
+# The daemon auto-pulls on first inference request; pre-pull to cache.
 agent_coding_pull_model() {
-    local vram_mb="${1:-0}"
-    local tag; tag="$(agent_coding_model_tag "$vram_mb")"
-    local name; name="$(agent_coding_model_name "$vram_mb")"
-    local size_gb; size_gb="$(agent_coding_model_size_gb "$tag")"
+    local vram_mb="${1:-0}" tag name gb
 
     if is_dry_run; then
-        log_info "[DRY-RUN] would instruct: ollama pull $tag ($name, ~${size_gb} GB)"
+        while IFS= read -r tag; do
+            name="$(agent_coding_model_name_for_tag "$tag")"
+            gb="$(agent_coding_fleet_field "$tag" 3)"
+            log_info "[DRY-RUN] would instruct: ollama pull $tag ($name, ~${gb} GB)"
+        done < <(agent_coding_fleet_fits "$vram_mb")
         return 0
     fi
     has ollama || { log_warn "ollama not installed — skipping model instructions"; return 0; }
 
-    if ollama list 2>/dev/null | grep -q "$tag"; then
-        log_skip "model $tag already present ($name)"
-        return 0
-    fi
-
-    log_info "VRAM-appropriate model for ${vram_mb} MB: $name ($tag, ~${size_gb} GB)"
-    log_info "  Pull it now (one-time, or first request auto-pulls):"
-    log_info "    ollama pull $tag"
-}
-
-# Rough size estimate for smoke-test display (not used for gating).
-agent_coding_model_size_gb() {
-    case "$1" in
-        *32b*) echo "21" ;;
-        *7b*)  echo "6"  ;;
-        *3b*)  echo "3"  ;;
-        *)     echo "4"  ;;
-    esac
+    log_info "agent-coding model fleet for ${vram_mb} MB VRAM (loaded on demand, one at a time):"
+    while IFS= read -r tag; do
+        name="$(agent_coding_model_name_for_tag "$tag")"
+        gb="$(agent_coding_fleet_field "$tag" 3)"
+        if ollama list 2>/dev/null | grep -q "$tag"; then
+            log_skip "  $tag present ($name)"
+        else
+            log_info "  $tag ($name, ~${gb} GB) — pull: ollama pull $tag"
+        fi
+    done < <(agent_coding_fleet_fits "$vram_mb")
 }
 
 agent_coding_record_manifest() {
-    local vram_mb="${1:-0}"
+    local vram_mb="${1:-0}" tag name caps note primary
+    primary="$(agent_coding_model_tag "$vram_mb")"
 
     if has ollama; then
         manifest_add ollama ollama agent-coding global apt \
@@ -221,18 +237,21 @@ agent_coding_record_manifest() {
             "Local LLM daemon (Ollama). System runtime: always-on service, ~0 VRAM idle. Models loaded on demand. GPU projects stay project-local."
     fi
 
-    local tag; tag="$(agent_coding_model_tag "$vram_mb")"
-    local name; name="$(agent_coding_model_name "$vram_mb")"
-
-    if ollama list 2>/dev/null | grep -q "$tag"; then
-        manifest_add "${tag}" ollama agent-coding container ollama \
-            "ollama list | grep $tag" optional \
-            "$name. Selected automatically for ${vram_mb} MB VRAM. LICENSE: Qwen (Apache 2.0). Change agent_coding_model_tag() in modules/agent-coding.sh to override."
-    fi
+    # Register every fleet model that is actually pulled.
+    while IFS= read -r tag; do
+        ollama list 2>/dev/null | grep -q "$tag" || continue
+        name="$(agent_coding_model_name_for_tag "$tag")"
+        caps="$(agent_coding_fleet_field "$tag" 5)"
+        note="$name. Capabilities: ${caps}. LICENSE: Apache 2.0."
+        [ "$tag" = "$primary" ] && note="$note Default for aider/Continue at ${vram_mb} MB VRAM."
+        note="$note Edit agent_coding_fleet() in modules/agent-coding.sh to change the fleet."
+        manifest_add "$tag" ollama agent-coding container ollama \
+            "ollama list | grep $tag" optional "$note"
+    done < <(agent_coding_fleet_fits "$vram_mb")
 
     if has aider; then
         manifest_add aider aider agent-coding global pipx \
             "aider --version" optional \
-            "CLI pair-programming agent. Native Ollama support: aider --model ollama/$tag"
+            "CLI pair-programming agent. Native Ollama support: aider --model ollama/$primary"
     fi
 }

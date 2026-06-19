@@ -44,7 +44,7 @@ what's installed before touching anything. Full rationale:
 | `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7 for Claude Code, Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
 | `optional-gpu` | ⛔ flag | NVIDIA/CUDA detection + guidance |
-| `agent-coding` | ⛔ flag | Ollama + VRAM-aware Qwen2.5-VL coder + aider + Continue extension |
+| `agent-coding` | ⛔ flag | Ollama + VRAM-aware model fleet (Qwen3-Coder 30B / Qwen3 30B Thinking / Mistral-Small 3.2 / Qwen3-VL 8B) + aider + Continue extension |
 
 ```bash
 ./bootstrap.sh                      # all default groups

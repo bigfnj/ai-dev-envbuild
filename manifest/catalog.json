@@ -1144,6 +1144,7 @@
     "notes": "Compose v2 plugin — invoke as 'docker compose'",
     "compat_requires": [],
     "source_repo": ""
+  },
   {
     "name": "devcontainer",
     "binary": "devcontainer",
@@ -1169,14 +1170,50 @@
     "source_repo": ""
   },
   {
-    "name": "qwen2.5-vl-32b-instruct",
+    "name": "qwen3-coder:30b",
     "binary": "ollama",
     "group": "agent-coding",
     "scope": "container",
     "install_method": "ollama",
-    "detect": "ollama list | grep qwen2.5-vl-32b",
+    "detect": "ollama list | grep qwen3-coder:30b",
     "status": "optional",
-    "notes": "Qwen2.5 Vision-Language Coder 32B (Q4_K_M ~19 GB). Best code model fitting RTX 4090 24 GB VRAM. Supports images + text. LICENSE: Qwen (Apache 2.0).",
+    "notes": "Qwen3-Coder 30B-A3B (MoE, Q4_K_M ~18 GB). Best agentic coder fitting a 24 GB card. Capabilities: tools. Text only. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "qwen3:30b-a3b-thinking-2507-q4_K_M",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep qwen3:30b-a3b-thinking-2507-q4_K_M",
+    "status": "optional",
+    "notes": "Qwen3 30B-A3B Thinking 2507 (MoE, Q4_K_M ~19 GB). Reasoning + code + tools, no vision. The thinking build ships only quant-suffixed tags. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "mistral-small3.2:24b",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep mistral-small3.2:24b",
+    "status": "optional",
+    "notes": "Mistral Small 3.2 24B (Q4_K_M ~15 GB). Vision + tools (no thinking). Strong function calling. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "qwen3-vl:8b",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep qwen3-vl:8b",
+    "status": "optional",
+    "notes": "Qwen3-VL 8B (Q4_K_M ~6 GB). Vision + tools + thinking in a small footprint. LICENSE: Apache 2.0.",
     "compat_requires": [],
     "source_repo": ""
   },
@@ -1188,7 +1225,7 @@
     "install_method": "pipx",
     "detect": "aider --version",
     "status": "optional",
-    "notes": "CLI pair-programming agent. Native Ollama support: aider --model ollama/qwen2.5-vl-32b-instruct",
+    "notes": "CLI pair-programming agent. Native Ollama support: aider --model ollama/qwen3-coder:30b",
     "compat_requires": [],
     "source_repo": ""
   }
