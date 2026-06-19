@@ -1,6 +1,6 @@
 # ai-dev-envbuild
 
-> **Environment version: 1.5.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
+> **Environment version: 1.7.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
 
 Reproducible, idempotent, agent-discoverable **Debian/Ubuntu/WSL2 development
 environment** — a broad "Swiss army knife" workstation (modern dev, legacy
@@ -44,6 +44,7 @@ what's installed before touching anything. Full rationale:
 | `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7 for Claude Code, Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
 | `optional-gpu` | ⛔ flag | NVIDIA/CUDA detection + guidance |
+| `agent-coding` | ⛔ flag | Ollama + VRAM-aware Qwen2.5-VL coder + aider + Continue extension |
 
 ```bash
 ./bootstrap.sh                      # all default groups

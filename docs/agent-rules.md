@@ -20,10 +20,14 @@ global-install rot, and rediscovery this environment exists to avoid.
 - **`uv` for project dependencies and Python versions.** `uv venv`,
   `uv add`, `uv run`, `uv python install <ver>`. Every project gets its own
   `.venv`.
-- **`pipx` for global Python CLIs only** (ruff, ipython, jupyterlab, …).
+- **`pipx` for global Python CLIs only** (ruff, ipython, jupyterlab, aider, …).
 - **Never `pip install` into system Python.** Never `pipx` a library.
 - `pytest`, `mypy`, and all libraries are **project-local** (`uv add --dev`),
   not global.
+- **ML/AI libraries** (torch, diffusers, transformers, etc.) belong in a
+  **project-local `uv` venv** — do NOT install them system-wide or via pipx.
+  Exception: an already-setup project with a GPU venv can add them via
+  `pyproject.toml` without re-running bootstrap.
 
 ## Node / TypeScript
 

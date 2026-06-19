@@ -57,16 +57,18 @@ agent_coding_gpu_vram_mb() {
 }
 
 # Given VRAM in MB, pick the largest model that fits.
-# Q4_K_M estimates: 7B ~5 GB, 14B ~9 GB, 32B ~19 GB.
-# Leave 2 GB headroom for KV cache + OS.
+# Ollama tag format: qwen2.5vl:<size>b (no dash, no -instruct suffix)
+# Vision models need extra VRAM for the multimodal projector (CLIP + projector +
+# vision encoder). After real-world testing, 32B needs >24 GB even on a "free"
+# 4090. Conservative tiers:
+#   7B  ~6 GB  — fits 8 GB+ cards comfortably, best quality/size tradeoff
+#   3B  ~3 GB  — fits 4 GB cards or when you need headroom for other models
 agent_coding_model_tag() {
     local vram_mb="${1:-0}"
-    if [ "$vram_mb" -ge 20000 ]; then
-        echo "qwen2.5-vl-32b-instruct"
-    elif [ "$vram_mb" -ge 12000 ]; then
-        echo "qwen2.5-vl-14b-instruct"
-    elif [ "$vram_mb" -ge 8000 ]; then
-        echo "qwen2.5-vl-7b-instruct"
+    if [ "$vram_mb" -ge 12000 ]; then
+        echo "qwen2.5vl:7b"
+    elif [ "$vram_mb" -ge 5000 ]; then
+        echo "qwen2.5vl:3b"
     else
         echo "qwen2.5-coder:7b"
     fi
@@ -75,10 +77,10 @@ agent_coding_model_tag() {
 agent_coding_model_name() {
     local tag; tag="$(agent_coding_model_tag "$1")"
     case "$tag" in
-        *32b*) echo "Qwen2.5 VL 32B (vision-coder, ~19 GB)" ;;
-        *14b*) echo "Qwen2.5 VL 14B (vision-coder, ~9 GB)" ;;
-        *7b*)  echo "Qwen2.5 VL 7B (vision-coder, ~5 GB)" ;;
-        *)     echo "Qwen2.5 Coder 7B (text-only, ~4 GB)" ;;
+        *32b*) echo "Qwen2.5-VL 32B (vision-coder, ~21 GB)" ;;
+        *7b*)  echo "Qwen2.5-VL 7B (vision-coder, ~6 GB)" ;;
+        *3b*)  echo "Qwen2.5-VL 3B (vision-coder, ~3 GB)" ;;
+        *)     echo "Qwen2.5-Coder 7B (text-only, ~4 GB)" ;;
     esac
 }
 
@@ -203,9 +205,9 @@ agent_coding_pull_model() {
 # Rough size estimate for smoke-test display (not used for gating).
 agent_coding_model_size_gb() {
     case "$1" in
-        *32b*) echo "19" ;;
-        *14b*) echo "9"  ;;
-        *7b*)  echo "5"  ;;
+        *32b*) echo "21" ;;
+        *7b*)  echo "6"  ;;
+        *3b*)  echo "3"  ;;
         *)     echo "4"  ;;
     esac
 }

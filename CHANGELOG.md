@@ -5,6 +5,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `agent-coding` optional group (`--with agent-coding`) installs a local AI coding
+  agent stack: Ollama daemon with VRAM-aware model selection
+  (qwen2.5vl:7b for ≥12 GB, qwen2.5vl:3b for ≥5 GB, qwen2.5-coder:7b fallback),
+  aider-chat CLI via pipx, and Continue (continue.dev) VS Code extension.
+- `optional-gpu` now records FLUX.1-dev, FLUX.1-Fill-dev, Wan2.1-T2V, and
+  Wan2.1-I2V checkpoint presence shims when their HuggingFace cache directories
+  exist.
+- `mcp` now registers an `ollama` MCP server alongside devenv/github/playwright/context7
+  for Claude Code, Codex, VS Code, and Cursor.
+- `smoke-test` now checks the Ollama daemon responds on :11434.
+- `agent-coding` module includes a user systemd unit for Ollama autostart on WSL boot.
+
 ## [1.5.0] — 2026-06-11
 
 ### Added
