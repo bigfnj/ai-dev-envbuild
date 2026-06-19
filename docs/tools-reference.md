@@ -10,6 +10,7 @@ check `devtools report` to confirm they're present, then use them normally.
 ## Document / PDF tools (new in office + docs groups)
 
 ### tesseract — OCR engine
+
 ```bash
 # Basic OCR to stdout
 tesseract image.png stdout
@@ -28,9 +29,11 @@ tesseract image.png stdout --psm 6   # uniform block of text
 tesseract image.png stdout --psm 7   # single line
 tesseract image.png stdout --psm 3   # auto (default)
 ```
+
 Add language packs: `apt install tesseract-ocr-spa` (Spanish), `tesseract-ocr-deu`, etc.
 
 ### ghostscript (gs) — PostScript/PDF interpreter
+
 ```bash
 # PDF → PNG images (one per page)
 gs -dNOPAUSE -dBATCH -sDEVICE=png16m -r300 \
@@ -52,6 +55,7 @@ gs -dNOPAUSE -dBATCH -sDEVICE=txtwrite \
 ```
 
 ### poppler-utils — PDF CLI utilities
+
 ```bash
 pdfinfo document.pdf            # page count, dimensions, metadata
 pdftoppm -r 150 -png document.pdf page  # → page-000001.png etc.
@@ -61,6 +65,7 @@ pdfimages -png document.pdf img         # extract embedded images
 ```
 
 ### qpdf — PDF manipulation
+
 ```bash
 # Merge / concatenate
 qpdf --empty --pages a.pdf b.pdf -- merged.pdf
@@ -79,6 +84,7 @@ qpdf --json input.pdf | jq '.objects | keys'
 ```
 
 ### LibreOffice headless (soffice) — Office document conversion
+
 ```bash
 # Convert DOCX/PPTX/XLSX → PDF
 soffice --headless --convert-to pdf document.docx
@@ -94,6 +100,7 @@ soffice --headless --convert-to pdf *.docx
 # Convert PPTX slides → images
 soffice --headless --convert-to png presentation.pptx
 ```
+
 `soffice` is single-threaded; run one instance at a time per machine.
 
 ---
@@ -145,6 +152,7 @@ img = Image.open("photo.jpg")
 img.thumbnail((800, 600))
 img.save("thumb.jpg")
 ```
+
 For project code, use `uv add python-docx` etc. — the ipython injections are
 scratch-pad convenience only and not available in project venvs.
 
@@ -153,6 +161,7 @@ scratch-pad convenience only and not available in project venvs.
 ## Image / media tools
 
 ### realesrgan-ncnn-vulkan — AI upscaling
+
 ```bash
 # Upscale a photo 4× (best for real-world photos)
 realesrgan-ncnn-vulkan -i input.png -o output.png -n realesrgan-x4plus
@@ -169,11 +178,13 @@ realesrgan-ncnn-vulkan -i input_dir/ -o output_dir/ -n realesrgan-x4plus
 # GPU tile size (lower if VRAM issues)
 realesrgan-ncnn-vulkan -i input.png -o output.png -n realesrgan-x4plus -t 200
 ```
+
 Models live in `~/tools/realesrgan/realesrgan-ncnn-vulkan-v0.2.0-ubuntu/models/`.
 If the binary exists but models are missing, obtain `.param` + `.bin` files and
 place them there, or use `-m /path/to/models`.
 
 ### rembg — AI background removal
+
 ```bash
 # Remove background from a single image
 rembg i input.png output.png
@@ -187,9 +198,11 @@ cat input.png | rembg i > output.png
 # Keep original size, write alpha channel
 rembg i --alpha-matting input.png output.png
 ```
+
 Model (~170 MB) downloads to `~/.u2net/` on first use.
 
 ### iopaint — AI inpainting
+
 ```bash
 # Start the web UI (open http://localhost:8080)
 iopaint start --model=lama --device=cpu --port=8080
@@ -206,6 +219,7 @@ iopaint run --model=lama --device=cuda \
 ```
 
 ### yt-dlp — media downloader
+
 ```bash
 # Download best quality video+audio
 yt-dlp <url>
@@ -224,6 +238,7 @@ yt-dlp -F <url>
 ```
 
 ### ffmpeg — key invocations
+
 ```bash
 # Transcode video
 ffmpeg -i input.mp4 -c:v libx264 -crf 23 output.mp4
@@ -249,6 +264,7 @@ ffmpeg -ss 00:01:00 -t 30 -i input.mp4 -c copy clip.mp4
 ## Reverse engineering tools
 
 ### radare2 (r2) — disassembler / debugger / emulator
+
 ```bash
 # Open a binary
 r2 binary
@@ -276,6 +292,7 @@ r2.quit()
 ```
 
 ### Ghidra headless — scripted RE (no GUI)
+
 ```bash
 # analyzeHeadless is at ~/tools/ghidra/ghidra_*/support/
 GHIDRA="$(find ~/tools/ghidra -name analyzeHeadless | head -1)"
@@ -297,11 +314,13 @@ GHIDRA="$(find ~/tools/ghidra -name analyzeHeadless | head -1)"
     -process binary_name \
     -postScript MyScript.java
 ```
+
 Scripts are Java (`.java`) or Python 2.7/Jython (`.py`). Place them in
 `~/ghidra_scripts/` or pass `-scriptPath`. The GUI launcher is
 `~/tools/ghidra/ghidra_*/ghidraRun`.
 
 ### frida — dynamic instrumentation
+
 ```bash
 # List running processes
 frida-ps
@@ -335,6 +354,7 @@ import sys; sys.stdin.read()
 ```
 
 ### dosbox-x-headless — DOS emulation (no display)
+
 ```bash
 # Run a DOS executable headlessly (SDL_VIDEODRIVER=dummy set by wrapper)
 dosbox-x-headless -c "mount c /dos_files" -c "c:" -c "program.exe" -c "exit"
@@ -351,6 +371,7 @@ dosbox-x-headless -c "mount c ." -c "c:" -c "TEST.EXE" -c "exit" 2>&1 | tee outp
 ## Secrets management
 
 ### age + sops (same pattern as Windows)
+
 ```bash
 # Generate a key pair
 age-keygen -o ~/.config/age/key.txt
@@ -375,6 +396,7 @@ sops secrets.enc.yaml   # edit in place (opens $EDITOR)
 ## Data tools
 
 ### duckdb — in-process analytical SQL
+
 ```bash
 # Interactive CLI
 duckdb
@@ -393,6 +415,7 @@ duckdb -c "COPY (SELECT * FROM 'data.csv') TO 'out.parquet' (FORMAT PARQUET)"
 ```
 
 ### sqlite-utils
+
 ```bash
 sqlite-utils insert db.sqlite mytable data.csv --csv
 sqlite-utils query db.sqlite "SELECT * FROM mytable" --csv
@@ -403,6 +426,7 @@ sqlite-utils convert db.sqlite mytable col "lambda v: v.strip()"
 ```
 
 ### csvkit
+
 ```bash
 csvlook data.csv                    # pretty-print table
 csvcut -c name,age data.csv         # select columns
@@ -415,6 +439,7 @@ sql2csv --db sqlite:///db.sqlite "SELECT * FROM t"
 ---
 
 ## HuggingFace CLI (hf)
+
 ```bash
 hf whoami                           # verify login
 hf login                            # authenticate (token from hf.co/settings)
