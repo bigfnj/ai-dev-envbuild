@@ -158,6 +158,7 @@ explicit flag.
 | `mcp` | ✅ | devenv MCP server (exposes manifest tools) + registers MCP servers for Claude Code (user scope), Codex, VS Code, Cursor |
 | `optional-heavy` | ⛔ flag | QEMU |
 | `optional-gpu` | ⛔ flag | NVIDIA/CUDA WSL path, GPU PyTorch guidance |
+| `agent-coding` | ⛔ flag | Ollama (system service) + local model fleet (barbell: default generalist + FIM/embedding specialists + on-demand 30B), aider, Continue — see §12 |
 
 ```bash
 ./bootstrap.sh                      # all default groups
@@ -303,3 +304,62 @@ still works via WSLg when a display is available, but is not the default mode.
 - **Re-provision a new machine:** clone, run `bootstrap.sh`. The manifest and
   this doc travel with the repo, so the next machine — and the next agent — start
   from full knowledge, not rediscovery.
+
+---
+
+## 12. Local LLM agent-coding stack (optional)
+
+`agent-coding` (opt-in: `--with agent-coding`) sets up a fully-local coding-assistant
+stack on the workstation GPU: the ollama daemon, a model fleet, `aider`, and the
+Continue VS Code extension. Design decisions and hard-won lessons:
+
+**Single daemon — the `.deb` system service, never a per-user unit.** The ollama
+`.deb` installs and enables a *system* service (`/etc/systemd/system/ollama.service`,
+`User=ollama`, model store `/usr/share/ollama/.ollama/models`). The module enables
+**that** and removes any legacy per-user unit. Running both is a real bug: two enabled
+services race for `:11434`, and after a reboot the system unit wins the port — silently
+serving a *different* model store than the one you populated. One daemon, one store.
+
+**The model fleet is a "barbell," not one big model.**
+
+- *Always-resident specialists* (tiny, co-loaded, ~1.7 GB combined):
+  `qwen2.5-coder:1.5b-base` for fill-in-middle autocomplete and `mxbai-embed-large`
+  for codebase embeddings.
+- *Default generalist*: `mistral-small3.2:24b` — vision + reliable structured tool
+  calls, fits full-GPU. The jack-of-all-trades for chat / edit / agent.
+- *Fast chat/edit coder*: `qwen2.5-coder:14b`.
+- *Load-on-demand heavyweights*: the ~18 GB 30B models (`qwen3-coder`,
+  `qwen3:30b-a3b-thinking-2507-q4_K_M`) for deep coding/reasoning sessions.
+
+Purpose-built mid-size models deliver more quality-per-VRAM than oversized generalists,
+and tiny specialists co-reside; one generalist supplies the cross-domain glue.
+
+**WSL2 single-allocation VRAM ceiling (the big lesson).** On WSL2/WDDM a single
+`cudaMalloc` is capped at roughly **(free VRAM − ~4.5 GB)**, independent of total VRAM.
+A 30B model loads its weights as one ~17.5 GB buffer, so on a 24 GB card it needs
+~23 GB *free* to load full-GPU — true right after boot, but it OOMs once the Windows
+desktop (browser, Wallpaper Engine, …) is using a couple GB. Field notes:
+
+- Symptom: `cudaMalloc failed: out of memory` while `nvidia-smi` still shows 20+ GB free.
+- `num_ctx` does **not** fix it — the failing buffer is the *weights*, not the KV cache.
+- `OLLAMA_GPU_OVERHEAD` did **not** trigger auto-offload (ollama 0.30.7).
+- Workaround when you must: `num_gpu` (partial CPU offload — works, but slower). Better:
+  keep the 30B models load-on-demand; default to the always-fits generalist/vision models.
+- Two ~18 GB models can never co-reside in 24 GB — load one at a time.
+
+**Model gotchas worth remembering.**
+
+- The Qwen3 *thinking* build ships **only quant-suffixed tags**
+  (`qwen3:30b-a3b-thinking-2507-q4_K_M`, not a bare `…-2507`). `ollama pull` exits 0 on a
+  missing manifest, so a wrong tag fails *silently* — verify tags before trusting a pull.
+- A model's `tools` **capability flag ≠ reliable structured tool-calling**:
+  `qwen2.5-coder` emits tool calls as inline JSON that ollama does not parse into
+  `tool_calls`. Verify per model (`/api/chat` with a `tools` array) before using it in
+  Agent mode; here it's marked chat/edit-only and agentic work routes to verified callers.
+
+**Editor integration (Continue v2, `~/.continue/config.yaml`).** Models are assigned
+*roles*: the default generalist + 30B models get `chat`/`edit`/`apply` (+ `tool_use` only
+where structured calls are verified), `qwen2.5-coder:1.5b-base` gets `autocomplete`, and
+`mxbai-embed-large` gets `embed`. Autocomplete and embeddings are decoupled from the
+chat-model dropdown — they always use their role-holder regardless of the selected chat
+model. Continue uses the canonical `config.yaml` (not the legacy `config.json`).

@@ -1218,6 +1218,42 @@
     "source_repo": ""
   },
   {
+    "name": "qwen2.5-coder:14b",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep qwen2.5-coder:14b",
+    "status": "optional",
+    "notes": "Qwen2.5-Coder 14B (Q4_K_M ~9 GB). Fast daily chat/edit coder, fits full-GPU on 24 GB. NOTE: emits tool calls as inline JSON Ollama does not parse into structured tool_calls — use for chat/edit, not Agent mode. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "qwen2.5-coder:1.5b-base",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep qwen2.5-coder:1.5b-base",
+    "status": "optional",
+    "notes": "Qwen2.5-Coder 1.5B Base (~1 GB). Fill-in-middle (insert) model for inline autocomplete (Continue autocomplete role). Tiny, always-resident. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "mxbai-embed-large",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep mxbai-embed-large",
+    "status": "optional",
+    "notes": "mxbai-embed-large (~0.7 GB, 1024-dim). Embedding model for codebase semantic search (Continue embed role). Tiny, always-resident. LICENSE: Apache 2.0.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
     "name": "aider",
     "binary": "aider",
     "group": "agent-coding",
@@ -1225,7 +1261,7 @@
     "install_method": "pipx",
     "detect": "aider --version",
     "status": "optional",
-    "notes": "CLI pair-programming agent. Native Ollama support: aider --model ollama/qwen3-coder:30b",
+    "notes": "CLI pair-programming agent. Native Ollama support: aider --model ollama/mistral-small3.2:24b",
     "compat_requires": [],
     "source_repo": ""
   }

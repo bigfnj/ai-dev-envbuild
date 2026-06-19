@@ -37,7 +37,7 @@ agent-coding setup complete.
   Model fleet that fits ${vram_mb} MB VRAM (loaded on demand, one at a time):
 $(agent_coding_fleet_fits "$vram_mb" | while read -r t; do printf '    %-34s %s\n' "$t" "$(agent_coding_model_name_for_tag "$t")"; done)
 
-  Default for aider/Continue (best coder that fits):  ollama/$primary
+  Default for aider/Continue (jack-of-all-trades that fits):  ollama/$primary
 
   Pre-pull the fleet (first request also auto-pulls):
 $(agent_coding_fleet_fits "$vram_mb" | while read -r t; do printf '    ollama pull %s\n' "$t"; done)
@@ -60,19 +60,29 @@ agent_coding_gpu_vram_mb() {
         | head -1 | tr -d ' ' || echo 0
 }
 
-# The agent-coding model fleet. One pipe-delimited record per model:
+# The agent-coding model fleet — a "barbell": tiny always-resident specialists
+# (FIM autocomplete + embeddings) + one default generalist + heavier models
+# loaded on demand. One pipe-delimited record per model:
 #   tag | role | approx_gb | min_vram_mb | capabilities | human name
-# Every member is tools-capable (function calling) so it drives aider/Continue.
-# min_vram_mb = weights + KV cache (+ vision projector where applicable). Models
-# load one at a time, so on a 24 GB card every member fits individually.
-# Tags are verified against the Ollama registry — the thinking build ships only
-# quant-suffixed tags (there is no bare :30b-a3b-thinking-2507 alias).
+# Roles: generalist/coder/vision/reasoning = chat models; autocomplete = FIM;
+# embed = codebase RAG. Capability "tools" = structured tool-calling VERIFIED via
+# Ollama; qwen2.5-coder emits tool calls as inline JSON Ollama does NOT parse, so
+# it's "code" (chat/edit), not an Agent-mode tool-caller.
+# min_vram_mb = weights + KV (+ vision projector). Big models load one at a time.
+# WSL2/WDDM caps a single cudaMalloc at ~ (free VRAM − 4.5 GB), so the ~18 GB 30B
+# models need ~23 GB free to load full-GPU and can OOM under desktop load — hence
+# they're load-on-demand, with mistral/qwen3-vl as the always-fits defaults.
+# Tags verified against the registry — the thinking build ships only quant-
+# suffixed tags (no bare :30b-a3b-thinking-2507; ollama pull exits 0 on a miss).
 agent_coding_fleet() {
     cat <<'FLEET'
-qwen3-coder:30b|coder|18|22000|tools|Qwen3-Coder 30B-A3B (MoE — best agentic coder)
-qwen3:30b-a3b-thinking-2507-q4_K_M|thinking|19|22000|tools,thinking|Qwen3 30B-A3B Thinking (reasoning + code)
-mistral-small3.2:24b|vision|15|18000|tools,vision|Mistral Small 3.2 24B (vision + tools)
-qwen3-vl:8b|vision-small|6|8000|tools,vision,thinking|Qwen3-VL 8B (vision + tools + thinking)
+mistral-small3.2:24b|generalist|15|18000|tools,vision|Mistral Small 3.2 24B (default — vision + structured tools)
+qwen2.5-coder:14b|coder|9|11000|code|Qwen2.5-Coder 14B (fast chat/edit; tool calls not Ollama-parsed)
+qwen3-vl:8b|vision|6|8000|tools,vision,thinking|Qwen3-VL 8B (vision + tools + thinking)
+qwen3-coder:30b|coder-agent|18|22000|tools|Qwen3-Coder 30B-A3B (best agentic coder; load-on-demand)
+qwen3:30b-a3b-thinking-2507-q4_K_M|reasoning|19|22000|tools,thinking|Qwen3 30B-A3B Thinking (reasoning + code; load-on-demand)
+qwen2.5-coder:1.5b-base|autocomplete|1|2000|insert|Qwen2.5-Coder 1.5B Base (FIM autocomplete; always-resident)
+mxbai-embed-large|embed|1|1000|embed|mxbai-embed-large (codebase embeddings; always-resident)
 FLEET
 }
 
@@ -95,15 +105,15 @@ agent_coding_model_name_for_tag() {
     [ -n "$n" ] && echo "$n" || echo "$1"
 }
 
-# Default (primary) model for a given VRAM: the best *coder* that fits.
-#   >=22 GB  qwen3-coder:30b       (18 GB MoE — top coding/agentic, needs a 24 GB card)
-#   >=16 GB  mistral-small3.2:24b  (15 GB — vision + tools, solid general/code)
+# Default (primary) model for a given VRAM: the best tool-capable *generalist*
+# that fits full-GPU — a jack-of-all-trades. NOT the VRAM-tight 30B (load-on-
+# demand) and NOT the coder (qwen2.5-coder's tool calls aren't Ollama-parsed).
+#   >=18 GB  mistral-small3.2:24b  (15 GB — vision + structured tools, full-GPU)
 #   >= 8 GB  qwen3-vl:8b           (6 GB — vision + tools + thinking)
 #    < 8 GB  qwen3-vl:8b           (best effort; offloads to CPU and runs slow)
 agent_coding_model_tag() {
     local vram_mb="${1:-0}"
-    if   [ "$vram_mb" -ge 22000 ]; then echo "qwen3-coder:30b"
-    elif [ "$vram_mb" -ge 16000 ]; then echo "mistral-small3.2:24b"
+    if   [ "$vram_mb" -ge 18000 ]; then echo "mistral-small3.2:24b"
     elif [ "$vram_mb" -ge 8000 ];  then echo "qwen3-vl:8b"
     else                                 echo "qwen3-vl:8b"
     fi

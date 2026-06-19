@@ -8,11 +8,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `agent-coding` optional group (`--with agent-coding`) installs a local AI coding
-  agent stack: Ollama daemon with a VRAM-aware model fleet — `qwen3-coder:30b`
-  (best agentic coder) and `qwen3:30b-a3b-thinking-2507-q4_K_M` (reasoning + code)
-  for ≥22 GB, `mistral-small3.2:24b` (vision + tools) for ≥16 GB, and `qwen3-vl:8b`
-  (vision + tools + thinking) for ≥8 GB; all members are tools-capable. Plus
-  aider-chat CLI via pipx and the Continue (continue.dev) VS Code extension.
+  agent stack: the ollama daemon plus a VRAM-aware **barbell** model fleet —
+  `mistral-small3.2:24b` as the default jack-of-all-trades (vision + structured
+  tools, full-GPU), `qwen2.5-coder:14b` for fast chat/edit, the 30B `qwen3-coder`
+  and `qwen3:…-thinking` as load-on-demand heavyweights, `qwen3-vl:8b` for small
+  vision, plus always-resident specialists `qwen2.5-coder:1.5b-base` (FIM
+  autocomplete) and `mxbai-embed-large` (codebase embeddings). Plus aider-chat via
+  pipx and the Continue (continue.dev) VS Code extension. (qwen2.5-coder emits tool
+  calls as inline JSON Ollama doesn't parse, so it's chat/edit-only — agentic tool
+  use routes to the verified structured-tool callers.)
 - `optional-gpu` now records FLUX.1-dev, FLUX.1-Fill-dev, Wan2.1-T2V, and
   Wan2.1-I2V checkpoint presence shims when their HuggingFace cache directories
   exist.
