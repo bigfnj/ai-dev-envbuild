@@ -187,6 +187,19 @@ else
     warn "direnv not present — skipping env-loader check"
 fi
 
+# ollama: daemon responds to API (no model needed).
+if command -v ollama >/dev/null 2>&1; then
+    if curl -s --max-time 5 http://localhost:11434/api/tags >/dev/null 2>&1; then
+        ok "ollama daemon responds on :11434"
+    else
+        warn "ollama daemon unreachable at localhost:11434 — start with 'ollama serve' (optional)"
+    fi
+else
+    warn "ollama not present — skipping LLM daemon check"
+fi
+
+# aider: at least show version/help (already in Phase 1 detect, skip here)
+
 # tesseract: verify binary starts and English language data is present.
 if command -v tesseract >/dev/null 2>&1; then
     if tesseract --list-langs 2>/dev/null | grep -q '^eng$'; then

@@ -16,7 +16,7 @@ export REPO_ROOT
 . "$REPO_ROOT/lib/common.sh"
 
 DEFAULT_GROUPS=(core python node languages reverse data docs office image containers mcp claude)
-OPTIONAL_GROUPS=(optional-heavy optional-gpu)
+OPTIONAL_GROUPS=(optional-heavy optional-gpu agent-coding)
 ALL_GROUPS=("${DEFAULT_GROUPS[@]}" "${OPTIONAL_GROUPS[@]}")
 
 usage() {

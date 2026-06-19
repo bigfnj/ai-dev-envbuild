@@ -1144,7 +1144,6 @@
     "notes": "Compose v2 plugin — invoke as 'docker compose'",
     "compat_requires": [],
     "source_repo": ""
-  },
   {
     "name": "devcontainer",
     "binary": "devcontainer",
@@ -1156,5 +1155,42 @@
     "notes": "Dev Containers CLI",
     "compat_requires": [],
     "source_repo": ""
+  },
+  {
+    "name": "ollama",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "global",
+    "install_method": "apt",
+    "detect": "ollama --version",
+    "status": "optional",
+    "notes": "Local LLM daemon (Ollama). System runtime: always-on service, ~0 VRAM idle. Models loaded on demand.",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "qwen2.5-vl-32b-instruct",
+    "binary": "ollama",
+    "group": "agent-coding",
+    "scope": "container",
+    "install_method": "ollama",
+    "detect": "ollama list | grep qwen2.5-vl-32b",
+    "status": "optional",
+    "notes": "Qwen2.5 Vision-Language Coder 32B (Q4_K_M ~19 GB). Best code model fitting RTX 4090 24 GB VRAM. Supports images + text. LICENSE: Qwen (Apache 2.0).",
+    "compat_requires": [],
+    "source_repo": ""
+  },
+  {
+    "name": "aider",
+    "binary": "aider",
+    "group": "agent-coding",
+    "scope": "global",
+    "install_method": "pipx",
+    "detect": "aider --version",
+    "status": "optional",
+    "notes": "CLI pair-programming agent. Native Ollama support: aider --model ollama/qwen2.5-vl-32b-instruct",
+    "compat_requires": [],
+    "source_repo": ""
   }
 ]
+

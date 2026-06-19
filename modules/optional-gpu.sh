@@ -95,7 +95,10 @@ GUIDE
     # iopaint installs regardless of GPU presence — works on CPU, much faster on GPU.
     optional_gpu_iopaint
     _optional_gpu_record_sdxl_inpaint
+    _optional_gpu_record_flux_dev
     _optional_gpu_record_flux_fill
+    _optional_gpu_record_wan_t2v
+    _optional_gpu_record_wan_i2v
     _optional_gpu_record_rvrt
     if has iopaint; then
         manifest_add iopaint iopaint optional-gpu global pipx \
@@ -189,7 +192,7 @@ optional_gpu_iopaint() {
 _optional_gpu_record_sdxl_inpaint() {
     local hf_dir="$HOME/.cache/huggingface/hub/models--diffusers--stable-diffusion-xl-1.0-inpainting-0.1"
     if [ -d "$hf_dir" ]; then
-        if is_dry_run; then log_info "[DRY-RUN] would write sdxl-inpaint checkpoint presence shim"; return 0; fi
+        if is_dry_run; then log_info "[DRY-RUN] would record sdxl-inpaint checkpoint"; return 0; fi
         # Write a presence-check shim so devtools check (command -v) and
         # smoke-test can both verify the checkpoint with a real binary.
         local shim="$HOME/tools/bin/sdxl-inpaint"
@@ -224,6 +227,25 @@ SHIM
     fi
 }
 
+# FLUX.1-dev — base text-to-image checkpoint (not inpaint). Recorded only when
+# already in the HF cache. Used by wallpaper-imagegen/flux_generate.py.
+# NON-COMMERCIAL license — personal wallpaper use is fine.
+_optional_gpu_record_flux_dev() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--black-forest-labs--FLUX.1-dev"
+    if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would record flux-dev checkpoint"; return 0; fi
+        local shim="$HOME/tools/bin/flux-dev"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add flux-dev-checkpoint flux-dev optional-gpu container huggingface \
+            "flux-dev" optional \
+            "FLUX.1-dev base text-to-image checkpoint (~23 GB; NF4 fits 24 GB VRAM). Used by wallpaper-imagegen/flux_generate.py. LICENSE: FLUX.1 [dev] NON-COMMERCIAL. Download: cd ~/projects/wallpaper-imagegen && uv run hf download black-forest-labs/FLUX.1-dev"
+    fi
+}
+
 # FLUX.1-Fill-dev — large text-to-image inpaint/outpaint checkpoint. Recorded
 # only when already present in the HF cache (this module never downloads the
 # ~55 GB of weights). Mirrors the SDXL recorder: a presence-check shim lets
@@ -242,5 +264,41 @@ SHIM
         manifest_add flux-fill-dev-checkpoint flux-fill-dev optional-gpu container huggingface \
             "flux-fill-dev" optional \
             "FLUX.1-Fill-dev inpaint/outpaint checkpoint (~55 GB on disk: transformer + T5/CLIP text encoders + VAE). 4-bit NF4 quant fits ~24 GB VRAM. LICENSE: FLUX.1 [dev] NON-COMMERCIAL. Canonical: containerized GPU. Exception: if a GPU project venv exists, run from there instead. Download: cd <your-gpu-project> && uv run hf download black-forest-labs/FLUX.1-Fill-dev"
+    fi
+}
+
+# Wan2.1-T2V-14B — text-to-video checkpoint. Recorded only when already in the
+# HF cache (never auto-downloaded by this module). Apache 2.0 — no restrictions.
+_optional_gpu_record_wan_t2v() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--Wan-AI--Wan2.1-T2V-14B-Diffusers"
+    if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would record wan-t2v checkpoint"; return 0; fi
+        local shim="$HOME/tools/bin/wan-t2v"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add wan-t2v-checkpoint wan-t2v optional-gpu container huggingface \
+            "wan-t2v" optional \
+            "Wan2.1-T2V-14B text-to-video checkpoint (~28 GB bfloat16, ~10 GB NF4). Used by wallpaper-imagegen/wan_generate.py t2v. LICENSE: Apache 2.0. Download: hf download Wan-AI/Wan2.1-T2V-14B-Diffusers"
+    fi
+}
+
+# Wan2.1-I2V-14B-480P — image-to-video checkpoint. Recorded only when already
+# in the HF cache (never auto-downloaded). Apache 2.0 — no restrictions.
+_optional_gpu_record_wan_i2v() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--Wan-AI--Wan2.1-I2V-14B-480P-Diffusers"
+    if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would record wan-i2v checkpoint"; return 0; fi
+        local shim="$HOME/tools/bin/wan-i2v"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add wan-i2v-checkpoint wan-i2v optional-gpu container huggingface \
+            "wan-i2v" optional \
+            "Wan2.1-I2V-14B-480P image-to-video checkpoint (~28 GB bfloat16, ~10 GB NF4). Used by wallpaper-imagegen/wan_generate.py i2v. LICENSE: Apache 2.0. Download: hf download Wan-AI/Wan2.1-I2V-14B-480P-Diffusers"
     fi
 }

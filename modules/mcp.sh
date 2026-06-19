@@ -34,6 +34,7 @@ mcp_desc() { echo "devenv MCP server — exposes manifest tools to Claude Code, 
 mcp_install() {
     mcp_install_deps
     mcp_register
+    mcp_register_agent_coding
 }
 
 mcp_install_deps() {
@@ -68,6 +69,7 @@ cfg.mcpServers.devenv     = { type: "stdio", command: "node", args: [process.env
 cfg.mcpServers.github     = { type: "stdio", command: "sh", args: ["-c", "GITHUB_TOKEN=$(gh auth token) npx -y @modelcontextprotocol/server-github"] };
 cfg.mcpServers.playwright = { type: "stdio", command: "npx", args: ["-y", "@playwright/mcp"] };
 cfg.mcpServers.context7   = { type: "stdio", command: "npx", args: ["-y", "@upstash/context7-mcp"] };
+cfg.mcpServers.ollama    = { type: "stdio", command: "npx", args: ["-y", "@modelcontextprotocol/server-ollama"] };
 writeFileSync(process.env.MCP_JSON, JSON.stringify(cfg, null, 2) + "\n");
 EOF
 }
@@ -85,6 +87,7 @@ cfg.servers.devenv    = { type: "stdio", command: "node", args: [process.env.SER
 cfg.servers.github    = { type: "stdio", command: "sh", args: ["-c", "GITHUB_TOKEN=$(gh auth token) npx -y @modelcontextprotocol/server-github"] };
 cfg.servers.playwright = { type: "stdio", command: "npx", args: ["-y", "@playwright/mcp"] };
 cfg.servers.context7  = { type: "stdio", command: "npx", args: ["-y", "@upstash/context7-mcp"] };
+cfg.servers.ollama   = { type: "stdio", command: "npx", args: ["-y", "@modelcontextprotocol/server-ollama"] };
 writeFileSync(process.env.MCP_JSON, JSON.stringify(cfg, null, 2) + "\n");
 EOF
 }
@@ -108,7 +111,8 @@ _mcp_write_codex_fmt() {
         printf '[mcp_servers.devenv]\ncommand = "node"\nargs = ["%s"]\n\n' "$server_path"
         printf '[mcp_servers.github]\ncommand = "sh"\nargs = ["-c", "GITHUB_TOKEN=$(gh auth token) npx -y @modelcontextprotocol/server-github"]\n\n'
         printf '[mcp_servers.playwright]\ncommand = "npx"\nargs = ["-y", "@playwright/mcp"]\n\n'
-        printf '[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\n'
+        printf '[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\n\n'
+        printf '[mcp_servers.ollama]\ncommand = "npx"\nargs = ["-y", "@modelcontextprotocol/server-ollama"]\n'
     } > "$bf"
     if grep -qF "$start" "$dest"; then
         awk -v s="$start" -v e="$end" -v bf="$bf" '
@@ -163,4 +167,36 @@ mcp_register() {
     fi
 
     log_info "restart Claude Code / Codex / VS Code / Cursor to load the new MCP tools"
+}
+
+mcp_register_agent_coding() {
+    if is_dry_run; then
+        log_info "[DRY-RUN] would register agent-coding MCP server (ollama)"
+        return 0
+    fi
+    if ! command -v ollama >/dev/null 2>&1; then
+        log_info "mcp: ollama not installed (agent-coding not run) — skipping ollama MCP registration"
+        return 0
+    fi
+
+    local server_path="$REPO_ROOT/mcp-server/index.js"
+
+    _mcp_write_claude_fmt "$HOME/.claude.json" "$server_path"
+    log_ok "Claude Code  → ollama MCP registered"
+
+    if [ -d "$HOME/.codex" ] || has codex; then
+        _mcp_write_codex_fmt "$HOME/.codex/config.toml" "$server_path"
+        log_ok "Codex        → ollama MCP registered"
+    fi
+
+    local appdata; appdata="$(_mcp_win_appdata)"
+    if [ -n "$appdata" ]; then
+        local vscode_user="$appdata/Code/User"
+        [ -d "$vscode_user" ] && _mcp_write_vscode_fmt "$vscode_user/mcp.json" "$server_path"
+
+        local cursor_user="$appdata/Cursor/User"
+        [ -d "$cursor_user" ] && _mcp_write_vscode_fmt "$cursor_user/mcp.json" "$server_path"
+    fi
+
+    log_info "ollama MCP registered — restart your agent to load it"
 }
