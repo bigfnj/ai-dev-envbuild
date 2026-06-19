@@ -357,9 +357,33 @@ desktop (browser, Wallpaper Engine, …) is using a couple GB. Field notes:
   `tool_calls`. Verify per model (`/api/chat` with a `tools` array) before using it in
   Agent mode; here it's marked chat/edit-only and agentic work routes to verified callers.
 
-**Editor integration (Continue v2, `~/.continue/config.yaml`).** Models are assigned
-*roles*: the default generalist + 30B models get `chat`/`edit`/`apply` (+ `tool_use` only
-where structured calls are verified), `qwen2.5-coder:1.5b-base` gets `autocomplete`, and
-`mxbai-embed-large` gets `embed`. Autocomplete and embeddings are decoupled from the
-chat-model dropdown — they always use their role-holder regardless of the selected chat
-model. Continue uses the canonical `config.yaml` (not the legacy `config.json`).
+**Editor integration — Continue v2, and its config lives on the *Windows* side.**
+The non-obvious part: the Continue VS Code extension here runs against the **Windows
+host**, so it reads `%USERPROFILE%\.continue\config.yaml` (on this machine
+`C:\Users\Admin\.continue\config.yaml`, i.e. `/mnt/c/Users/Admin/.continue/config.yaml`
+from WSL) — **not** the Linux `~/.continue/config.yaml`. Editing the WSL copy silently
+does nothing; the giveaway is the editor breadcrumb reading `C: > Users > Admin >
+.continue`. (A WSL-remote Continue, if installed, reads the Linux home instead — the two
+can diverge, so keep whichever instance you actually use authoritative.) The ollama daemon
+stays in WSL; Continue reaches it at `http://localhost:11434` via WSL2 localhost forwarding,
+which is also how an `AUTODETECT` config discovers the fleet.
+
+- **Explicit `roles:`, never an `AUTODETECT` stub.** `model: AUTODETECT` makes Continue
+  enumerate every ollama model and auto-assign roles arbitrarily — which silently routed
+  `edit`/`apply` to the OOM-prone 30B thinking model. Each model declares its roles.
+- **The 30B heavyweights are `chat`-only.** Edit (Ctrl+I) and Apply fire constantly and
+  would cold-load an ~18 GB buffer — exactly the WSL single-allocation OOM above. So the
+  30B models carry only `chat` (a deliberate Chat-dropdown opt-in for when VRAM is free),
+  while `mistral-small3.2:24b` (default), `qwen2.5-coder:14b`, and `qwen3-vl:8b` hold
+  `chat`/`edit`/`apply`. Continue makes the *first* model with a role that role's default,
+  so the always-fits generalist is the edit/apply default and a heavyweight can never be.
+- **Autocomplete and embeddings are decoupled** from the chat-model dropdown:
+  `qwen2.5-coder:1.5b-base` (`autocomplete`) and `mxbai-embed-large` (`embed`) always run
+  via their role-holder regardless of the selected chat model, with `tool_use` declared
+  only where structured calls are verified.
+- **`@codebase` indexing is gated by `.continuerc.json`** in that same dir
+  (`"disableIndexing"`). It's enabled here (`false`), so `mxbai-embed-large` is the live
+  embedder for `@codebase` / `@docs`; set it back to `true` to make the embed model dormant.
+- **`config.yaml` wins over the legacy `config.json`** in that dir; the old `config.json`
+  (the retired `qwen2.5vl:7b` / `qwen2.5-coder:32b` fleet) was moved aside to
+  `config.json.bak`.
