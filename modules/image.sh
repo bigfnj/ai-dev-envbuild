@@ -16,6 +16,7 @@ image_install() {
     image_pillow
     image_rembg
     image_realesrgan
+    image_realesrgan_models
     image_iopaint
     image_hf
     image_ytdlp
@@ -64,35 +65,83 @@ image_rembg() {
     pipx install "rembg[cli]"
 }
 
+# Download the three ncnn model files for realesrgan-ncnn-vulkan. The binary zip
+# (ncnn-vulkan v0.2.0) ships no models; the Real-ESRGAN Python project's v0.2.5.0
+# ncnn zip is the authoritative pre-converted source. Idempotent: skips if the
+# primary model is already present in the models/ directory.
+image_realesrgan_models() {
+    local destdir="$HOME/tools/realesrgan/realesrgan-ncnn-vulkan-${REALESRGAN_VERSION}-ubuntu"
+    local modelsdir="$destdir/models"
+    if [ -f "$modelsdir/realesrgan-x4plus.bin" ]; then
+        log_skip "realesrgan models already present ($modelsdir)"
+        return 0
+    fi
+    if is_dry_run; then
+        log_info "[DRY-RUN] would download realesrgan model files from Real-ESRGAN Python project v0.2.5.0 ncnn zip"
+        return 0
+    fi
+    has realesrgan-ncnn-vulkan || { log_warn "realesrgan binary not installed — skipping model download"; return 0; }
+    log_info "downloading realesrgan model files (Real-ESRGAN Python project v0.2.5.0 ncnn zip)"
+    local zip; zip="$(mktemp --suffix=.zip)"
+    if ! curl -fsSL "$REALESRGAN_MODELS_URL" -o "$zip"; then
+        log_warn "realesrgan models download failed — skipping"; rm -f "$zip"; return 0
+    fi
+    verify_sha256 "$zip" "$REALESRGAN_MODELS_SHA256" || { rm -f "$zip"; return 1; }
+    ensure_dir "$modelsdir"
+    # Extract only the three x4 models we need; skip x2/x3 animevideov3 variants.
+    unzip -q -o "$zip" \
+        "models/realesrgan-x4plus.bin" \
+        "models/realesrgan-x4plus.param" \
+        "models/realesrgan-x4plus-anime.bin" \
+        "models/realesrgan-x4plus-anime.param" \
+        "models/realesr-animevideov3-x4.bin" \
+        "models/realesr-animevideov3-x4.param" \
+        -d "$destdir" 2>/dev/null || true
+    rm -f "$zip"
+    if [ -f "$modelsdir/realesrgan-x4plus.bin" ]; then
+        log_ok "realesrgan models extracted to $modelsdir"
+    else
+        log_warn "realesrgan model extraction failed — models may be missing"
+    fi
+}
+
 # iopaint — AI inpainting for object/person/background removal.
 # LaMa (default) is a lightweight transformer; MAT and SD variants need more VRAM.
 # Works on CPU (slow) or GPU (fast). PyTorch dependency makes the venv ~2-4 GB;
 # models download on first use. Uses uv tool (not pipx): iopaint pins Pillow==9.5.0
 # which fails to build on Python 3.13 — uv --overrides substitutes Pillow>=11.0.0.
+# Pinned to Python 3.11: iopaint 1.6.0 imports `imghdr` which was removed in
+# Python 3.13, causing an immediate crash on Python 3.14+ systems.
 image_iopaint() {
     if has iopaint; then
         log_skip "iopaint already installed"
         return 0
     fi
-    if is_dry_run; then log_info "[DRY-RUN] would uv tool install iopaint (~2-4 GB including PyTorch)"; return 0; fi
+    if is_dry_run; then log_info "[DRY-RUN] would uv tool install iopaint --python 3.11 (~2-4 GB including PyTorch)"; return 0; fi
     has uv || { log_err "uv not installed; cannot install iopaint (run python group first)"; return 1; }
-    log_info "uv tool install iopaint (PyTorch dependency -- large download)"
+    log_info "uv tool install iopaint --python 3.11 (PyTorch dependency -- large download)"
     local override; override="$(mktemp)"
     printf 'Pillow>=11.0.0\n' > "$override"
-    uv tool install iopaint --override "$override"
+    uv tool install iopaint --python 3.11 --override "$override"
     rm -f "$override"
 }
 
 # Real-ESRGAN ncnn-Vulkan — AI upscaling, enhancement, and anime conversion.
-# Four models: realesrgan-x4plus (photos), realesrgan-x4plus-anime, realesr-animevideov3,
-# realesrnet-x4plus (fast). GPU (Vulkan) or CPU mode.
-# NOTE: v0.2.0 release ships the binary only — model files are downloaded separately.
-#   mkdir -p ~/tools/realesrgan/realesrgan-ncnn-vulkan-v0.2.0-ubuntu/models
-#   # Then obtain .param + .bin files from the project or community mirrors and
-#   # place them there, or use -m /path/to/models to specify a custom path.
-#   Invoke: realesrgan-ncnn-vulkan -i in.png -o out.png -n realesrgan-x4plus-anime
+# Three ncnn models ship in this group (extracted from the Real-ESRGAN Python
+# project's v0.2.5.0 ncnn zip, the only official source for pre-converted files):
+#   realesrgan-x4plus        (photos)
+#   realesrgan-x4plus-anime  (anime/illustrations)
+#   realesr-animevideov3-x4  (anime video frames)
+# NOTE: realesrnet-x4plus (fast variant) exists only as a PyTorch .pth — it has
+# never shipped in ncnn format from any official release and requires manual
+# conversion with the ncnn toolchain to produce .bin/.param files.
+# Invoke: realesrgan-ncnn-vulkan -i in.png -o out.png -n realesrgan-x4plus-anime
+# GPU (Vulkan) or CPU mode; use -m /path to override model directory.
 REALESRGAN_VERSION="v0.2.0"
 REALESRGAN_SHA256="d0e8e1cf954f5cde11be4745dd912cc3774bef36f71c5b1cb8f74c4112b6e919"
+# Model files come from the Python project's ncnn zip (binary-only ncnn-vulkan zip has none).
+REALESRGAN_MODELS_URL="https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip"
+REALESRGAN_MODELS_SHA256="e5aa6eb131234b87c0c51f82b89390f5e3e642b7b70f2b9bbe95b6a285a40c96"
 
 image_realesrgan() {
     if has realesrgan-ncnn-vulkan; then
@@ -142,6 +191,25 @@ image_ytdlp() {
     pipx_install yt-dlp
 }
 
+# SD1.5 inpainting model for iopaint. Recorded only when already downloaded;
+# pre-download with: iopaint download --model runwayml/stable-diffusion-inpainting
+# Fits comfortably on 8 GB VRAM (~2.6 GB weights). Requires iopaint --model sd1.5.
+_image_record_sd15_inpaint() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--runwayml--stable-diffusion-inpainting"
+    if [ -d "$hf_dir" ]; then
+        if is_dry_run; then log_info "[DRY-RUN] would record sd1.5-inpaint model"; return 0; fi
+        local shim="$HOME/tools/bin/sd15-inpaint"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add sd15-inpaint-checkpoint sd15-inpaint image container huggingface \
+            "sd15-inpaint" optional \
+            "SD1.5 inpainting model for iopaint (~2.6 GB; fits 8 GB VRAM). Use: iopaint start --model=sd1.5 --device=cuda --port=8080. Download: iopaint download --model runwayml/stable-diffusion-inpainting"
+    fi
+}
+
 image_record_manifest() {
     local im=""
     if has magick; then im=magick; elif has convert; then im=convert; fi
@@ -175,8 +243,9 @@ image_record_manifest() {
     if has iopaint; then
         manifest_add iopaint iopaint image global uv-tool \
             "command -v iopaint" core \
-            "AI inpainting: object/person/background removal (LaMa, MAT, SD models; CPU capable, GPU recommended for speed)"
+            "AI inpainting: object/person/background removal (LaMa, MAT, SD models; CPU capable, GPU recommended for speed). Pinned to Python 3.11: imghdr removed in 3.13."
     fi
+    _image_record_sd15_inpaint
     if has realesrgan-ncnn-vulkan; then
         manifest_add realesrgan-ncnn-vulkan realesrgan-ncnn-vulkan image global github-zip \
             "command -v realesrgan-ncnn-vulkan" core \
