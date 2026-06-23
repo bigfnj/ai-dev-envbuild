@@ -5,6 +5,36 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-06-23
+
+### Added
+
+- `image` now downloads all five realesrgan ncnn models: adds `realesr-animevideov3-x2`
+  and `-x3` alongside the existing x4 variants. Model source corrected to the
+  Real-ESRGAN Python project v0.2.5.0 ncnn zip (SHA256 pinned) — the ncnn-vulkan
+  v0.2.0 zip ships the binary only and has never contained model files.
+- `optional-gpu` VRAM-aware anime generation guide printed at bootstrap time when a
+  GPU is detected: 8+ GB → `hf download hakurei/waifu-diffusion` (SD1.5, Apache 2.0);
+  12+ GB → `hf download cagliostrolab/animagine-xl-3.1` (SDXL, Apache 2.0). On 24 GB
+  workstations both lines appear automatically.
+- `optional-gpu` records `waifu-diffusion-checkpoint` (hakurei/waifu-diffusion SD1.5
+  anime generation, 8+ GB VRAM) and `animagine-xl-checkpoint` (cagliostrolab/animagine-xl-3.1
+  SDXL, 12+ GB VRAM, comfortable on 24 GB) when cached. Both recorders guard against
+  config-only partial downloads via a blobs > 100 MB size check.
+- `image` records `sd15-inpaint-checkpoint` (runwayml/stable-diffusion-inpainting,
+  ~2.6 GB, fits 8 GB VRAM) when cached; pre-download via
+  `iopaint download --model runwayml/stable-diffusion-inpainting`.
+
+### Fixed
+
+- `image`: `iopaint` now installs with `--python 3.11`. iopaint 1.6.0 imports
+  `imghdr` which was removed in Python 3.13 — on Python 3.14+ systems every
+  iopaint invocation crashed immediately with `ModuleNotFoundError`.
+- `image`: clarifies that `realesrnet-x4plus` has never shipped in ncnn format
+  from any official release; removes the misleading "Four models" claim.
+
+## [1.7.0] — 2026-06-22
+
 ### Added
 
 - `agent-coding` optional group (`--with agent-coding`) installs a local AI coding
@@ -27,6 +57,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`User=ollama`, store `/usr/share/ollama/.ollama/models`), removes any legacy
   per-user unit, and avoids the dual-daemon race for `:11434` that could leave the
   wrong model store serving after a reboot.
+- `core` now installs `autoconf`, `automake`, `libtool`, `qt6-base-dev`, and
+  `qt6-tools-dev` for native C/C++ and Qt6 project builds.
+
+### Fixed
+
+- `image`: `iopaint` moved from `optional-gpu` to the default `image` group —
+  iopaint runs on CPU and should not be gated behind the GPU opt-in flag.
+- `image`: `iopaint` manifest entry corrected from `pipx` to `uv-tool` install
+  method (iopaint pins Pillow==9.5.0 which cannot be overridden in pipx).
+
+## [1.6.0] — 2026-06-15
+
+### Added
+
+- `claude` module manages `~/.claude/settings.json` and `settings.local.json` for
+  Claude Code: sets model, effortLevel (`xhigh`), defaultMode, fastMode, and
+  thinkingSummaries at bootstrap time.
 
 ## [1.5.0] — 2026-06-11
 
@@ -174,7 +221,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `manifest/tools.json` — machine-readable tool inventory.
 - Agent auto-discovery via `write_agent_discovery()` (AGENTS.md + CLAUDE.md).
 
-[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.3.0...v1.3.1

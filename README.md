@@ -1,6 +1,6 @@
 # ai-dev-envbuild
 
-> **Environment version: 1.7.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
+> **Environment version: 1.8.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
 
 Reproducible, idempotent, agent-discoverable **Debian/Ubuntu/WSL2 development
 environment** — a broad "Swiss army knife" workstation (modern dev, legacy
@@ -40,12 +40,12 @@ what's installed before touching anything. Full rationale:
 | `data` | ✅ | DuckDB CLI, sqlite-utils, csvkit, **rclone** |
 | `docs` | ✅ | pandoc, markdownlint-cli, **ghostscript**, **poppler-utils**, **qpdf**, **tesseract-ocr** |
 | `office` | ✅ | **LibreOffice** (headless), **python-docx/python-pptx/openpyxl** (pipx-injected into ipython) |
-| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **rembg**, **Real-ESRGAN**, **hf** (HuggingFace CLI), **yt-dlp**, **aria2**, format tools (png/gif/webp/jpeg/heif) |
+| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **rembg**, **iopaint** (AI inpainting, Python 3.11), **Real-ESRGAN** (5 ncnn models: x4plus photo/anime + animevideov3 x2/x3/x4), **hf** (HuggingFace CLI), **yt-dlp**, **aria2**, format tools (png/gif/webp/jpeg/heif) |
 | `containers` | ✅ | Docker Engine + Compose, devcontainer CLI |
 | `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7/ollama for Claude Code, Codex, VS Code, Cursor |
 | `claude` | ✅ | Claude Code user settings — model, effortLevel, defaultMode, fastMode, thinkingSummaries (`~/.claude/settings.json` + `settings.local.json`) |
 | `optional-heavy` | ⛔ flag | QEMU |
-| `optional-gpu` | ⛔ flag | NVIDIA GPU: nvtop, nvidia-container-toolkit, **iopaint** (AI inpainting), **RVRT** video SR — detection + guidance |
+| `optional-gpu` | ⛔ flag | NVIDIA GPU: nvtop, nvidia-container-toolkit, **RVRT** video SR, **VRAM-aware anime guide** (waifu-diffusion SD1.5 8+ GB; animagine-xl-3.1 SDXL 12+ GB) — detection + guidance |
 | `agent-coding` | ⛔ flag | Ollama (system service) + VRAM-aware barbell fleet — Mistral-Small 3.2 default, Qwen3-Coder/Thinking 30B on-demand, Qwen3-VL 8B, qwen2.5-coder:14b chat/edit, FIM autocomplete + mxbai embeddings + aider + Continue |
 
 ```bash
@@ -147,7 +147,7 @@ The repo carries a [`VERSION`](VERSION) file (semver). Every `bootstrap.sh` run
 stamps the installed version and date into `~/tools/env-version`:
 
 ```text
-1.7.0  2026-06-18
+1.8.0  2026-06-23
 ```
 
 `devtools report` shows the installed version at the top. `devtools doctor`
@@ -159,6 +159,9 @@ a new tool is added or a group is meaningfully changed.
 
 | Version | Change |
 |---------|--------|
+| **1.8.0** | `image` adds realesrgan x2/x3 models, SD1.5 inpaint recorder, iopaint Python 3.11 fix (`imghdr` removed in 3.13). `optional-gpu` adds VRAM-aware anime guide: waifu-diffusion (8+ GB) and animagine-xl-3.1 SDXL (12+ GB) with weight-guarded presence recorders. |
+| **1.7.0** | `agent-coding` optional group: Ollama system service + VRAM-aware barbell fleet (Mistral-Small 3.2 default, Qwen3-Coder/Thinking 30B on-demand, Qwen3-VL 8B, FIM autocomplete, embeddings) + aider + Continue. `mcp` registers Ollama MCP server. `optional-gpu` adds FLUX.1-dev + Wan2.1 presence recorders. `image` absorbs `iopaint`. `core` adds autoconf/automake/libtool + Qt6. |
+| **1.6.0** | `claude` module manages `~/.claude/settings.json` + `settings.local.json` (model, effortLevel `xhigh`, defaultMode, fastMode, thinkingSummaries). |
 | **1.5.0** | Adds `aria2`, `rclone`, `ncdu`, `duf`, `age`, `sops`, `direnv`, and `just`, plus smoke-test coverage for the new workflow tools. |
 | **1.4.0** | `image` installs and records `yt-dlp` via pipx for media downloads; `ffmpeg` in the same group handles muxing, audio extraction, and conversion. |
 | **1.3.1** | `optional-gpu` records the FLUX.1-Fill-dev checkpoint (~55 GB, non-commercial license) via presence-shim and corrects the SDXL size (~20 GB) — both recorded only when already cached, never auto-downloaded. |
