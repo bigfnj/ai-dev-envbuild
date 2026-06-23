@@ -33,7 +33,8 @@ image_apt_extra() {
         jpegoptim \
         libheif-examples \
         aria2 \
-        potrace
+        potrace \
+        librsvg2-bin
 }
 
 # Pillow — inject into ipython's isolated pipx env for global REPL use.
@@ -270,6 +271,10 @@ image_record_manifest() {
     if has potrace; then
         manifest_add potrace potrace image global apt "potrace --version" core \
             "bitmap-to-vector conversion: transforms B&W PBM/BMP into smooth SVG/EPS/PDF paths (companion: mkbitmap)"
+    fi
+    if has rsvg-convert; then
+        manifest_add librsvg2 rsvg-convert image global apt "rsvg-convert --version" core \
+            "Cairo-based SVG rasterizer with proper anti-aliasing; rsvg-convert -w 2880 input.svg > output.png"
     fi
     log_ok "manifest updated — image group"
 }

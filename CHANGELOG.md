@@ -5,6 +5,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.1] — 2026-06-23
+
+### Added
+
+- `image` now installs `librsvg2-bin` (apt) — provides `rsvg-convert`, a Cairo-based SVG
+  rasterizer that produces properly anti-aliased output. Pairs with `potrace` for the
+  clean vector pipeline: binary PNG → potrace SVG → rsvg-convert anti-aliased PNG at
+  any target resolution.
+
 ## [1.9.0] — 2026-06-23
 
 ### Added
@@ -229,7 +238,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `manifest/tools.json` — machine-readable tool inventory.
 - Agent auto-discovery via `write_agent_discovery()` (AGENTS.md + CLAUDE.md).
 
-[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.6.0...v1.7.0

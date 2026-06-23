@@ -1,6 +1,6 @@
 # ai-dev-envbuild
 
-> **Environment version: 1.9.0** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
+> **Environment version: 1.9.1** — run `devtools report` to see what's installed, `devtools doctor` to check for drift.
 
 Reproducible, idempotent, agent-discoverable **Debian/Ubuntu/WSL2 development
 environment** — a broad "Swiss army knife" workstation (modern dev, legacy
@@ -40,7 +40,7 @@ what's installed before touching anything. Full rationale:
 | `data` | ✅ | DuckDB CLI, sqlite-utils, csvkit, **rclone** |
 | `docs` | ✅ | pandoc, markdownlint-cli, **ghostscript**, **poppler-utils**, **qpdf**, **tesseract-ocr** |
 | `office` | ✅ | **LibreOffice** (headless), **python-docx/python-pptx/openpyxl** (pipx-injected into ipython) |
-| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **rembg**, **iopaint** (AI inpainting, Python 3.11), **Real-ESRGAN** (5 ncnn models: x4plus photo/anime + animevideov3 x2/x3/x4), **hf** (HuggingFace CLI), **yt-dlp**, **aria2**, **potrace** (bitmap→vector SVG/EPS/PDF), format tools (png/gif/webp/jpeg/heif) |
+| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **rembg**, **iopaint** (AI inpainting, Python 3.11), **Real-ESRGAN** (5 ncnn models: x4plus photo/anime + animevideov3 x2/x3/x4), **hf** (HuggingFace CLI), **yt-dlp**, **aria2**, **potrace** (bitmap→vector SVG/EPS/PDF), **rsvg-convert** (Cairo SVG→PNG rasterizer, anti-aliased), format tools (png/gif/webp/jpeg/heif) |
 | `containers` | ✅ | Docker Engine + Compose, devcontainer CLI |
 | `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7/ollama for Claude Code, Codex, VS Code, Cursor |
 | `claude` | ✅ | Claude Code user settings — model, effortLevel, defaultMode, fastMode, thinkingSummaries (`~/.claude/settings.json` + `settings.local.json`) |
@@ -147,7 +147,7 @@ The repo carries a [`VERSION`](VERSION) file (semver). Every `bootstrap.sh` run
 stamps the installed version and date into `~/tools/env-version`:
 
 ```text
-1.9.0  2026-06-23
+1.9.1  2026-06-23
 ```
 
 `devtools report` shows the installed version at the top. `devtools doctor`
@@ -159,6 +159,7 @@ a new tool is added or a group is meaningfully changed.
 
 | Version | Change |
 |---------|--------|
+| **1.9.1** | `image` adds `rsvg-convert` (Cairo SVG rasterizer with proper anti-aliasing). |
 | **1.9.0** | `image` adds `potrace` (bitmap-to-vector: B&W PNG/BMP → smooth SVG/EPS/PDF paths). |
 | **1.8.0** | `image` adds realesrgan x2/x3 models, SD1.5 inpaint recorder, iopaint Python 3.11 fix (`imghdr` removed in 3.13). `optional-gpu` adds VRAM-aware anime guide: waifu-diffusion (8+ GB) and animagine-xl-3.1 SDXL (12+ GB) with weight-guarded presence recorders. |
 | **1.7.0** | `agent-coding` optional group: Ollama system service + VRAM-aware barbell fleet (Mistral-Small 3.2 default, Qwen3-Coder/Thinking 30B on-demand, Qwen3-VL 8B, FIM autocomplete, embeddings) + aider + Continue. `mcp` registers Ollama MCP server. `optional-gpu` adds FLUX.1-dev + Wan2.1 presence recorders. `image` absorbs `iopaint`. `core` adds autoconf/automake/libtool + Qt6. |
