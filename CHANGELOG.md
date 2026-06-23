@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-06-23
+
+### Added
+
+- `image` now installs `potrace` (apt) — converts B&W bitmaps (PBM/BMP) into smooth
+  scalable vector paths (SVG, EPS, PDF, DXF). Companion `mkbitmap` ships with the package
+  for grayscale-to-binary pre-processing. Enables lossless edge quality at any output size.
+
 ## [1.8.0] — 2026-06-23
 
 ### Added
@@ -221,7 +229,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `manifest/tools.json` — machine-readable tool inventory.
 - Agent auto-discovery via `write_agent_discovery()` (AGENTS.md + CLAUDE.md).
 
-[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/bigfnj/ai-dev-envbuild/compare/v1.5.0...v1.6.0

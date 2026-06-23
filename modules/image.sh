@@ -32,7 +32,8 @@ image_apt_extra() {
         webp \
         jpegoptim \
         libheif-examples \
-        aria2
+        aria2 \
+        potrace
 }
 
 # Pillow — inject into ipython's isolated pipx env for global REPL use.
@@ -265,6 +266,10 @@ image_record_manifest() {
         manifest_add yt-dlp yt-dlp image global pipx \
             "yt-dlp --version" core \
             "media downloader for URLs; pairs with ffmpeg for muxing, audio extraction, and format conversion"
+    fi
+    if has potrace; then
+        manifest_add potrace potrace image global apt "potrace --version" core \
+            "bitmap-to-vector conversion: transforms B&W PBM/BMP into smooth SVG/EPS/PDF paths (companion: mkbitmap)"
     fi
     log_ok "manifest updated — image group"
 }
