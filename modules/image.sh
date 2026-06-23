@@ -72,7 +72,7 @@ image_rembg() {
 image_realesrgan_models() {
     local destdir="$HOME/tools/realesrgan/realesrgan-ncnn-vulkan-${REALESRGAN_VERSION}-ubuntu"
     local modelsdir="$destdir/models"
-    if [ -f "$modelsdir/realesrgan-x4plus.bin" ]; then
+    if [ -f "$modelsdir/realesrgan-x4plus.bin" ] && [ -f "$modelsdir/realesr-animevideov3-x2.bin" ]; then
         log_skip "realesrgan models already present ($modelsdir)"
         return 0
     fi
@@ -88,12 +88,16 @@ image_realesrgan_models() {
     fi
     verify_sha256 "$zip" "$REALESRGAN_MODELS_SHA256" || { rm -f "$zip"; return 1; }
     ensure_dir "$modelsdir"
-    # Extract only the three x4 models we need; skip x2/x3 animevideov3 variants.
+    # Extract all five models: x4plus photo/anime + all three animevideov3 scale variants.
     unzip -q -o "$zip" \
         "models/realesrgan-x4plus.bin" \
         "models/realesrgan-x4plus.param" \
         "models/realesrgan-x4plus-anime.bin" \
         "models/realesrgan-x4plus-anime.param" \
+        "models/realesr-animevideov3-x2.bin" \
+        "models/realesr-animevideov3-x2.param" \
+        "models/realesr-animevideov3-x3.bin" \
+        "models/realesr-animevideov3-x3.param" \
         "models/realesr-animevideov3-x4.bin" \
         "models/realesr-animevideov3-x4.param" \
         -d "$destdir" 2>/dev/null || true
@@ -127,11 +131,11 @@ image_iopaint() {
 }
 
 # Real-ESRGAN ncnn-Vulkan — AI upscaling, enhancement, and anime conversion.
-# Three ncnn models ship in this group (extracted from the Real-ESRGAN Python
+# Five ncnn models ship in this group (extracted from the Real-ESRGAN Python
 # project's v0.2.5.0 ncnn zip, the only official source for pre-converted files):
-#   realesrgan-x4plus        (photos)
-#   realesrgan-x4plus-anime  (anime/illustrations)
-#   realesr-animevideov3-x4  (anime video frames)
+#   realesrgan-x4plus           (photos, 4x)
+#   realesrgan-x4plus-anime     (anime/illustrations, 4x)
+#   realesr-animevideov3-x2/3/4 (anime video frames, multi-scale)
 # NOTE: realesrnet-x4plus (fast variant) exists only as a PyTorch .pth — it has
 # never shipped in ncnn format from any official release and requires manual
 # conversion with the ncnn toolchain to produce .bin/.param files.

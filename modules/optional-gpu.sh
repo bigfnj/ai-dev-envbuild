@@ -15,9 +15,11 @@ optional_gpu_install() {
     if has nvidia-smi; then
         log_ok "GPU detected:"
         nvidia-smi -L 2>/dev/null | sed 's/^/    /'
-        local driver
+        local driver vram_mb
         driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)"
         [ -n "$driver" ] && log_info "host driver: $driver"
+        vram_mb="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')"
+        [ -z "$vram_mb" ] && vram_mb=0
 
         optional_gpu_nvtop
         optional_gpu_container_toolkit
@@ -64,6 +66,8 @@ GPU path summary:
 
 GUIDE
 
+        optional_gpu_anime_guide "$vram_mb"
+
         if is_wsl; then
             manifest_add nvidia-smi nvidia-smi optional-gpu global windows-host-driver \
                 "nvidia-smi -L" optional \
@@ -98,6 +102,8 @@ GUIDE
     _optional_gpu_record_wan_t2v
     _optional_gpu_record_wan_i2v
     _optional_gpu_record_rvrt
+    _optional_gpu_record_anime_sd15
+    _optional_gpu_record_anime_xl
     log_ok "manifest updated — optional-gpu group"
 }
 
@@ -273,5 +279,61 @@ SHIM
         manifest_add wan-i2v-checkpoint wan-i2v optional-gpu container huggingface \
             "wan-i2v" optional \
             "Wan2.1-I2V-14B-480P image-to-video checkpoint (~28 GB bfloat16, ~10 GB NF4). Used by wallpaper-imagegen/wan_generate.py i2v. LICENSE: Apache 2.0. Download: hf download Wan-AI/Wan2.1-I2V-14B-480P-Diffusers"
+    fi
+}
+
+# VRAM-aware guide for anime generation model downloads. Called from
+# optional_gpu_install() when a GPU is present. Presence recorders below
+# pick them up once cached; re-run ./bootstrap.sh --only optional-gpu to register.
+optional_gpu_anime_guide() {
+    local vram_mb="${1:-0}"
+    log_info "anime generation models (VRAM-tiered; download then re-run --only optional-gpu to register):"
+    if [ "$vram_mb" -ge 6000 ]; then
+        log_info "  8+ GB  : hf download hakurei/waifu-diffusion          (~4 GB  SD1.5  Apache 2.0)"
+    fi
+    if [ "$vram_mb" -ge 12000 ]; then
+        log_info "  12+ GB : hf download cagliostrolab/animagine-xl-3.1   (~7 GB  SDXL   Apache 2.0)"
+    fi
+    if [ "$vram_mb" -lt 6000 ]; then
+        log_warn "  < 6 GB VRAM detected (${vram_mb} MB) — anime generation models require >= 6 GB VRAM"
+    fi
+}
+
+# waifu-diffusion — SD1.5 anime image generation. Recorded only when already in
+# the HF cache with actual model weights (blobs > 100 MB). Apache 2.0.
+# Download: hf download hakurei/waifu-diffusion
+_optional_gpu_record_anime_sd15() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--hakurei--waifu-diffusion"
+    if [ -d "$hf_dir" ] && find "$hf_dir/blobs" -type f -size +100M -maxdepth 1 2>/dev/null | grep -q .; then
+        if is_dry_run; then log_info "[DRY-RUN] would record waifu-diffusion checkpoint"; return 0; fi
+        local shim="$HOME/tools/bin/waifu-diffusion"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add waifu-diffusion-checkpoint waifu-diffusion optional-gpu container huggingface \
+            "waifu-diffusion" optional \
+            "waifu-diffusion SD1.5 anime generation (~4 GB; 8 GB VRAM). Works with iopaint (--model sd1.5) and standard diffusers pipelines. LICENSE: Apache 2.0. Download: hf download hakurei/waifu-diffusion"
+    fi
+}
+
+# animagine-xl-3.1 — SDXL high-quality anime generation. Recorded only when
+# already in the HF cache with actual model weights (blobs > 100 MB). Apache 2.0.
+# Needs 12+ GB VRAM (~7 GB weights); comfortable on 24 GB.
+# Download: hf download cagliostrolab/animagine-xl-3.1
+_optional_gpu_record_anime_xl() {
+    local hf_dir="$HOME/.cache/huggingface/hub/models--cagliostrolab--animagine-xl-3.1"
+    if [ -d "$hf_dir" ] && find "$hf_dir/blobs" -type f -size +100M -maxdepth 1 2>/dev/null | grep -q .; then
+        if is_dry_run; then log_info "[DRY-RUN] would record animagine-xl-3.1 checkpoint"; return 0; fi
+        local shim="$HOME/tools/bin/animagine-xl"
+        cat > "$shim" <<SHIM
+#!/usr/bin/env bash
+test -d "$hf_dir"
+SHIM
+        chmod +x "$shim"
+        manifest_add animagine-xl-checkpoint animagine-xl optional-gpu container huggingface \
+            "animagine-xl" optional \
+            "Animagine XL 3.1 SDXL anime generation (~7 GB; 12+ GB VRAM, comfortable on 24 GB). Standard diffusers SDXL pipeline. LICENSE: Apache 2.0. Download: hf download cagliostrolab/animagine-xl-3.1"
     fi
 }
