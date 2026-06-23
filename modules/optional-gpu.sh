@@ -92,19 +92,12 @@ GUIDE
         fi
     fi
 
-    # iopaint installs regardless of GPU presence — works on CPU, much faster on GPU.
-    optional_gpu_iopaint
     _optional_gpu_record_sdxl_inpaint
     _optional_gpu_record_flux_dev
     _optional_gpu_record_flux_fill
     _optional_gpu_record_wan_t2v
     _optional_gpu_record_wan_i2v
     _optional_gpu_record_rvrt
-    if has iopaint; then
-        manifest_add iopaint iopaint optional-gpu global pipx \
-            "command -v iopaint" optional \
-            "AI inpainting: object/person/background removal (LaMa, MAT, SD models; GPU recommended for speed)"
-    fi
     log_ok "manifest updated — optional-gpu group"
 }
 
@@ -167,26 +160,6 @@ optional_gpu_container_toolkit() {
     else
         log_info "docker not running — after starting Docker, run: sudo nvidia-ctk runtime configure --runtime=docker"
     fi
-}
-
-# iopaint — AI object/person/background removal via inpainting models.
-# LaMa (default) is a lightweight transformer; MAT and SD variants need more VRAM.
-# PyTorch dependency makes the tool venv ~2-4 GB; models download on first use.
-# Uses uv tool install (not pipx): iopaint pins Pillow==9.5.0 which fails to build
-# on Python 3.13 -- uv --overrides substitutes Pillow>=11.0.0 without breaking runtime.
-optional_gpu_iopaint() {
-    if has iopaint; then
-        log_skip "iopaint already installed"
-        return 0
-    fi
-    if is_dry_run; then log_info "[DRY-RUN] would uv tool install iopaint (~2-4 GB including PyTorch)"; return 0; fi
-    has uv || { log_err "uv not installed; cannot install iopaint (run python group first)"; return 1; }
-    log_info "uv tool install iopaint (PyTorch dependency -- large download)"
-    local override; override="$(mktemp)"
-    printf 'Pillow>=11.0.0
-' > "$override"
-    uv tool install iopaint --override "$override"
-    rm -f "$override"
 }
 
 _optional_gpu_record_sdxl_inpaint() {

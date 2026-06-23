@@ -38,12 +38,14 @@ what's installed before touching anything. Full rationale:
 | `languages` | ✅ | Rust (rustup + **rust-analyzer**), Go, OpenJDK + Maven, .NET |
 | `reverse` | ✅ | radare2, binwalk, exiftool, tshark, foremost, **headless DOSBox-X**, frida, **Ghidra** |
 | `data` | ✅ | DuckDB CLI, sqlite-utils, csvkit, **rclone** |
-| `docs` | ✅ | pandoc, markdownlint-cli |
-| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **yt-dlp**, **aria2** |
+| `docs` | ✅ | pandoc, markdownlint-cli, **ghostscript**, **poppler-utils**, **qpdf**, **tesseract-ocr** |
+| `office` | ✅ | **LibreOffice** (headless), **python-docx/python-pptx/openpyxl** (pipx-injected into ipython) |
+| `image` | ✅ | ImageMagick, ffmpeg, **Pillow** (pipx-injected into ipython), **rembg**, **Real-ESRGAN**, **hf** (HuggingFace CLI), **yt-dlp**, **aria2**, format tools (png/gif/webp/jpeg/heif) |
 | `containers` | ✅ | Docker Engine + Compose, devcontainer CLI |
-| `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7 for Claude Code, Codex, VS Code, Cursor |
+| `mcp` | ✅ | **devenv MCP server** (exposes manifest tools) + registers devenv/github/playwright/context7/ollama for Claude Code, Codex, VS Code, Cursor |
+| `claude` | ✅ | Claude Code user settings — model, effortLevel, defaultMode, fastMode, thinkingSummaries (`~/.claude/settings.json` + `settings.local.json`) |
 | `optional-heavy` | ⛔ flag | QEMU |
-| `optional-gpu` | ⛔ flag | NVIDIA/CUDA detection + guidance |
+| `optional-gpu` | ⛔ flag | NVIDIA GPU: nvtop, nvidia-container-toolkit, **iopaint** (AI inpainting), **RVRT** video SR — detection + guidance |
 | `agent-coding` | ⛔ flag | Ollama (system service) + VRAM-aware barbell fleet — Mistral-Small 3.2 default, Qwen3-Coder/Thinking 30B on-demand, Qwen3-VL 8B, qwen2.5-coder:14b chat/edit, FIM autocomplete + mxbai embeddings + aider + Continue |
 
 ```bash
@@ -59,10 +61,11 @@ what's installed before touching anything. Full rationale:
 After bootstrap, `devtools` is on your PATH (read-only; it never installs):
 
 ```bash
-devtools report   # human-readable inventory, grouped by install group
-devtools check    # verify every manifest tool is present (drift detection)
-devtools doctor   # PATH, shellrc, runtimes, docker daemon health
-devtools outdated # check for newer versions (apt/pipx/rustup/npm + GitHub releases)
+devtools report        # human-readable inventory, grouped by install group
+devtools check         # verify every manifest tool is present (drift detection)
+devtools doctor        # PATH, shellrc, runtimes, docker daemon health
+devtools outdated      # check for newer versions (apt/pipx/rustup/npm + GitHub releases)
+devtools upgrade [name] # upgrade all tools, or just the named one
 ```
 
 The live inventory lives in `~/tools/manifest/tools.json` and is generated from
@@ -89,7 +92,7 @@ This repo:
 ```text
 bootstrap.sh         entry point
 lib/common.sh        shared helpers (has, apt_install, pipx_install, npm_global, …)
-modules/*.sh         one file per install group (core … containers, mcp, optional-*)
+modules/*.sh         one file per install group (core … office, image, containers, mcp, claude, optional-*)
 mcp-server/          devenv MCP server — exposes inventory tools to agents
 manifest/catalog.json pre-bootstrap fallback tool catalog
 bin/devtools         report / check / doctor / outdated
@@ -144,7 +147,7 @@ The repo carries a [`VERSION`](VERSION) file (semver). Every `bootstrap.sh` run
 stamps the installed version and date into `~/tools/env-version`:
 
 ```text
-1.5.0  2026-06-11
+1.7.0  2026-06-18
 ```
 
 `devtools report` shows the installed version at the top. `devtools doctor`

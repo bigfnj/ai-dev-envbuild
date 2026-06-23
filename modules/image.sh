@@ -8,7 +8,7 @@
 # gifsicle (GIF), webp (WebP encode/decode), jpegoptim (JPEG opt), heif (HEIF/AVIF),
 # huggingface-cli/hf (model download + repo management), yt-dlp + aria2 (media download).
 
-image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), hf (HuggingFace CLI), yt-dlp + aria2, format tools (png/gif/webp/jpeg/heif)"; }
+image_desc() { echo "imagemagick, ffmpeg, Pillow, rembg (bg removal), realesrgan (AI upscale/anime), iopaint (AI inpainting), hf (HuggingFace CLI), yt-dlp + aria2, format tools (png/gif/webp/jpeg/heif)"; }
 
 image_install() {
     apt_install imagemagick ffmpeg
@@ -16,6 +16,7 @@ image_install() {
     image_pillow
     image_rembg
     image_realesrgan
+    image_iopaint
     image_hf
     image_ytdlp
     image_record_manifest
@@ -61,6 +62,25 @@ image_rembg() {
     if is_dry_run; then log_info "[DRY-RUN] would pipx install rembg[cli]"; return 0; fi
     log_info "pipx install rembg[cli]"
     pipx install "rembg[cli]"
+}
+
+# iopaint — AI inpainting for object/person/background removal.
+# LaMa (default) is a lightweight transformer; MAT and SD variants need more VRAM.
+# Works on CPU (slow) or GPU (fast). PyTorch dependency makes the venv ~2-4 GB;
+# models download on first use. Uses uv tool (not pipx): iopaint pins Pillow==9.5.0
+# which fails to build on Python 3.13 — uv --overrides substitutes Pillow>=11.0.0.
+image_iopaint() {
+    if has iopaint; then
+        log_skip "iopaint already installed"
+        return 0
+    fi
+    if is_dry_run; then log_info "[DRY-RUN] would uv tool install iopaint (~2-4 GB including PyTorch)"; return 0; fi
+    has uv || { log_err "uv not installed; cannot install iopaint (run python group first)"; return 1; }
+    log_info "uv tool install iopaint (PyTorch dependency -- large download)"
+    local override; override="$(mktemp)"
+    printf 'Pillow>=11.0.0\n' > "$override"
+    uv tool install iopaint --override "$override"
+    rm -f "$override"
 }
 
 # Real-ESRGAN ncnn-Vulkan — AI upscaling, enhancement, and anime conversion.
@@ -151,6 +171,11 @@ image_record_manifest() {
     if has rembg; then
         manifest_add rembg rembg image global pipx "command -v rembg" core \
             "AI background removal (u2net, ONNX; no GPU required; model ~170 MB downloads on first use)"
+    fi
+    if has iopaint; then
+        manifest_add iopaint iopaint image global uv-tool \
+            "command -v iopaint" core \
+            "AI inpainting: object/person/background removal (LaMa, MAT, SD models; CPU capable, GPU recommended for speed)"
     fi
     if has realesrgan-ncnn-vulkan; then
         manifest_add realesrgan-ncnn-vulkan realesrgan-ncnn-vulkan image global github-zip \
