@@ -178,59 +178,100 @@ agent_coding_ollama_service() {
         log_warn "system ollama.service not found — the ollama .deb normally installs it; start manually: ollama serve"
     fi
 
-    agent_coding_ollama_gpu_warm
+    agent_coding_ollama_gpu_rescue
 }
 
-# Durable cold-boot GPU fix (WSL2). On a fresh boot the first CUDA/dxg compute init
-# can take >30s; that exceeds ollama's GPU-discovery watchdog, so the daemon silently
-# registers CPU-ONLY and serves every model from CPU for the life of the process
-# (fleet-wide ~15x slowdown until the next restart). We install a tiny ExecStartPre
-# that warms the compute path first — the warm-up primes host paravirt + driver state,
-# which is process-independent, so ollama's subsequent discovery sees a ready GPU.
-# No-op on CPU-only hosts; always exits 0 so it can never block the service.
-agent_coding_ollama_gpu_warm() {
-    if is_dry_run; then log_info "[DRY-RUN] would install ollama GPU-warm ExecStartPre drop-in"; return 0; fi
-    has nvidia-smi || { log_info "no GPU — skipping ollama GPU-warm drop-in"; return 0; }
+# Durable cold-boot GPU fix (WSL2). On a fresh boot the first full CUDA *context* creation
+# through the dxg paravirt layer takes >30s, which exceeds ollama's hardcoded 30s
+# GPU-discovery watchdog — so the daemon registers CPU-ONLY and serves every model from
+# CPU for the life of the process (fleet-wide ~15x slowdown until the next restart).
+#
+# An earlier attempt (an ExecStartPre that warmed cuInit) proved INSUFFICIENT: cuInit is
+# cheap (~2s even cold) and does not warm the context-creation path that actually hangs.
+# Instead we install a post-boot oneshot that, only if ollama came up CPU-only, creates a
+# real CUDA context (the slow op, no watchdog) to warm the path and then restarts ollama —
+# a warm-system restart reliably registers the GPU. Idempotent: no-op if already on GPU.
+agent_coding_ollama_gpu_rescue() {
+    if is_dry_run; then log_info "[DRY-RUN] would install ollama-gpu-rescue post-boot unit"; return 0; fi
     command -v systemctl >/dev/null 2>&1 || return 0
     systemctl list-unit-files ollama.service >/dev/null 2>&1 || return 0
 
-    local warm=/usr/local/bin/ollama-gpu-warm
-    sudo tee "$warm" >/dev/null <<'WARM'
+    # Retire the earlier, ineffective cuInit ExecStartPre warm if present.
+    if [ -f /etc/systemd/system/ollama.service.d/10-gpu-warm.conf ]; then
+        sudo rm -f /etc/systemd/system/ollama.service.d/10-gpu-warm.conf /usr/local/bin/ollama-gpu-warm
+        sudo rmdir /etc/systemd/system/ollama.service.d 2>/dev/null || true
+        log_info "removed obsolete ollama GPU-warm ExecStartPre drop-in"
+    fi
+
+    has nvidia-smi || { log_info "no GPU — skipping ollama-gpu-rescue"; return 0; }
+
+    sudo tee /usr/local/bin/ollama-gpu-rescue >/dev/null <<'RESCUE'
 #!/usr/bin/env bash
-# Pre-initialize the WSL2 CUDA/dxg compute path before ollama GPU discovery runs.
-# The first cuInit after boot can exceed ollama's ~30s discovery watchdog, causing a
-# permanent CPU-only fallback. Warming here (host paravirt + driver load is
-# process-independent) lets discovery find a ready GPU. Always exits 0.
-timeout 200 /usr/bin/python3 - <<'PY' 2>/dev/null || true
-import ctypes, time
+# Post-boot rescue for ollama's WSL2 cold-boot GPU-discovery timeout.
+# If ollama registered CPU-only this boot (first CUDA context creation exceeded its 30s
+# discovery watchdog), create a real CUDA context here to warm the path, then restart
+# ollama once so discovery re-runs hot. Idempotent: no-op if ollama already has the GPU.
+set -u
+log() { logger -t ollama-gpu-rescue "$*"; echo "ollama-gpu-rescue: $*"; }
+
+verdict=""
+for _ in $(seq 1 30); do
+    verdict="$(journalctl -u ollama --no-pager -b 2>/dev/null | grep 'inference compute' | tail -1)"
+    [ -n "$verdict" ] && break
+    sleep 3
+done
+case "$verdict" in
+    *"library=CUDA"*) log "ollama already on GPU — nothing to do"; exit 0 ;;
+esac
+log "ollama is CPU-only (or no verdict) — warming CUDA context + restarting"
+
+/usr/bin/python3 - <<'PY' 2>/dev/null || true
+import ctypes, time, sys
+try:
+    cuda = ctypes.CDLL("/usr/lib/wsl/lib/libcuda.so.1")
+except Exception:
+    sys.exit(0)
 end = time.time() + 180
 while time.time() < end:
     try:
-        cuda = ctypes.CDLL("/usr/lib/wsl/lib/libcuda.so.1")
         if cuda.cuInit(0) == 0:
-            n = ctypes.c_int()
-            cuda.cuDeviceGetCount(ctypes.byref(n))
-            if n.value > 0:
-                break
+            dev = ctypes.c_int(0)
+            if cuda.cuDeviceGet(ctypes.byref(dev), 0) == 0:
+                ctx = ctypes.c_void_p()
+                if cuda.cuCtxCreate_v2(ctypes.byref(ctx), 0, dev) == 0:
+                    ptr = ctypes.c_void_p()
+                    cuda.cuMemAlloc_v2(ctypes.byref(ptr), 4096)
+                    cuda.cuMemFree_v2(ptr)
+                    cuda.cuCtxDestroy_v2(ctx)
+                    sys.exit(0)
     except Exception:
         pass
     time.sleep(2)
+sys.exit(1)
 PY
-exit 0
-WARM
-    sudo chmod 0755 "$warm"
 
-    local dropdir=/etc/systemd/system/ollama.service.d
-    sudo mkdir -p "$dropdir"
-    sudo tee "$dropdir/10-gpu-warm.conf" >/dev/null <<CONF
-# Installed by ai-dev-envbuild modules/agent-coding.sh (agent_coding_ollama_gpu_warm).
-# Warms the WSL2 CUDA path before ollama discovery so a cold-boot GPU init does not
-# time out into a CPU-only fallback. Remove this file to revert.
+systemctl restart ollama
+log "restarted ollama; discovery will re-run on the warmed path"
+exit 0
+RESCUE
+    sudo chmod 0755 /usr/local/bin/ollama-gpu-rescue
+
+    sudo tee /etc/systemd/system/ollama-gpu-rescue.service >/dev/null <<'UNIT'
+[Unit]
+Description=Rescue ollama GPU discovery after WSL2 cold boot
+After=ollama.service
+Wants=ollama.service
+
 [Service]
-ExecStartPre=$warm
-CONF
+Type=oneshot
+ExecStart=/usr/local/bin/ollama-gpu-rescue
+
+[Install]
+WantedBy=multi-user.target
+UNIT
     sudo systemctl daemon-reload 2>/dev/null || true
-    log_ok "installed ollama GPU-warm drop-in (prevents cold-boot CPU-only fallback)"
+    sudo systemctl enable ollama-gpu-rescue.service 2>/dev/null || true
+    log_ok "installed ollama-gpu-rescue post-boot unit (recovers cold-boot CPU-only fallback)"
 }
 
 agent_coding_aider() {
