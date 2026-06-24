@@ -177,6 +177,60 @@ agent_coding_ollama_service() {
     else
         log_warn "system ollama.service not found — the ollama .deb normally installs it; start manually: ollama serve"
     fi
+
+    agent_coding_ollama_gpu_warm
+}
+
+# Durable cold-boot GPU fix (WSL2). On a fresh boot the first CUDA/dxg compute init
+# can take >30s; that exceeds ollama's GPU-discovery watchdog, so the daemon silently
+# registers CPU-ONLY and serves every model from CPU for the life of the process
+# (fleet-wide ~15x slowdown until the next restart). We install a tiny ExecStartPre
+# that warms the compute path first — the warm-up primes host paravirt + driver state,
+# which is process-independent, so ollama's subsequent discovery sees a ready GPU.
+# No-op on CPU-only hosts; always exits 0 so it can never block the service.
+agent_coding_ollama_gpu_warm() {
+    if is_dry_run; then log_info "[DRY-RUN] would install ollama GPU-warm ExecStartPre drop-in"; return 0; fi
+    has nvidia-smi || { log_info "no GPU — skipping ollama GPU-warm drop-in"; return 0; }
+    command -v systemctl >/dev/null 2>&1 || return 0
+    systemctl list-unit-files ollama.service >/dev/null 2>&1 || return 0
+
+    local warm=/usr/local/bin/ollama-gpu-warm
+    sudo tee "$warm" >/dev/null <<'WARM'
+#!/usr/bin/env bash
+# Pre-initialize the WSL2 CUDA/dxg compute path before ollama GPU discovery runs.
+# The first cuInit after boot can exceed ollama's ~30s discovery watchdog, causing a
+# permanent CPU-only fallback. Warming here (host paravirt + driver load is
+# process-independent) lets discovery find a ready GPU. Always exits 0.
+timeout 200 /usr/bin/python3 - <<'PY' 2>/dev/null || true
+import ctypes, time
+end = time.time() + 180
+while time.time() < end:
+    try:
+        cuda = ctypes.CDLL("/usr/lib/wsl/lib/libcuda.so.1")
+        if cuda.cuInit(0) == 0:
+            n = ctypes.c_int()
+            cuda.cuDeviceGetCount(ctypes.byref(n))
+            if n.value > 0:
+                break
+    except Exception:
+        pass
+    time.sleep(2)
+PY
+exit 0
+WARM
+    sudo chmod 0755 "$warm"
+
+    local dropdir=/etc/systemd/system/ollama.service.d
+    sudo mkdir -p "$dropdir"
+    sudo tee "$dropdir/10-gpu-warm.conf" >/dev/null <<CONF
+# Installed by ai-dev-envbuild modules/agent-coding.sh (agent_coding_ollama_gpu_warm).
+# Warms the WSL2 CUDA path before ollama discovery so a cold-boot GPU init does not
+# time out into a CPU-only fallback. Remove this file to revert.
+[Service]
+ExecStartPre=$warm
+CONF
+    sudo systemctl daemon-reload 2>/dev/null || true
+    log_ok "installed ollama GPU-warm drop-in (prevents cold-boot CPU-only fallback)"
 }
 
 agent_coding_aider() {
