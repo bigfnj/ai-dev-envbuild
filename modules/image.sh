@@ -54,17 +54,20 @@ image_pillow() {
 }
 
 # rembg — AI background removal using u2net models via ONNX Runtime (no GPU
-# required; model downloads on first use ~170 MB). [cli] extra provides the
-# click entry point. Custom idempotency check via `has rembg` because the [cli]
-# suffix confuses pipx list --short package-name comparison.
+# required; model downloads on first use ~170 MB). The [cli] extra provides the
+# click entry point; the [cpu] extra pulls the ONNX Runtime backend (onnxruntime).
+# Without a backend rembg installs but cannot run ("No onnxruntime backend found"),
+# so [cli] alone is not enough. Health/idempotency check is `rembg --version`,
+# which exits non-zero unless a backend is importable — this both skips a healthy
+# install and self-heals an older backend-less one via --force.
 image_rembg() {
-    if has rembg; then
-        log_skip "rembg already installed"
+    if rembg --version >/dev/null 2>&1; then
+        log_skip "rembg already installed (ONNX Runtime backend present)"
         return 0
     fi
-    if is_dry_run; then log_info "[DRY-RUN] would pipx install rembg[cli]"; return 0; fi
-    log_info "pipx install rembg[cli]"
-    pipx install "rembg[cli]"
+    if is_dry_run; then log_info "[DRY-RUN] would pipx install rembg[cli,cpu]"; return 0; fi
+    log_info "pipx install rembg[cli,cpu] (CLI + CPU ONNX Runtime backend)"
+    pipx install --force "rembg[cli,cpu]"
 }
 
 # Download the three ncnn model files for realesrgan-ncnn-vulkan. The binary zip
@@ -242,9 +245,12 @@ image_record_manifest() {
     if has jpegoptim;    then manifest_add jpegoptim    jpegoptim    image global apt "jpegoptim --version"   core "JPEG compression and metadata stripping"; fi
     if has heif-convert; then manifest_add libheif      heif-convert image global apt "command -v heif-convert" core "HEIF/AVIF read+write (heif-convert, heif-info)"; fi
     if has aria2c;       then manifest_add aria2        aria2c       image global apt "aria2c --version"       core "resumable/parallel downloader; useful as yt-dlp external downloader"; fi
-    if has rembg; then
-        manifest_add rembg rembg image global pipx "command -v rembg" core \
-            "AI background removal (u2net, ONNX; no GPU required; model ~170 MB downloads on first use)"
+    # Record only a *working* rembg: `rembg --version` exits non-zero without an
+    # ONNX Runtime backend, so it doubles as the manifest detect (smoke-test runs
+    # detect, so a backend-less install now fails the gate instead of passing).
+    if rembg --version >/dev/null 2>&1; then
+        manifest_add rembg rembg image global pipx "rembg --version" core \
+            "AI background removal (u2net, ONNX Runtime CPU backend; no GPU required; model ~170 MB downloads on first use)"
     fi
     if has iopaint; then
         manifest_add iopaint iopaint image global uv-tool \

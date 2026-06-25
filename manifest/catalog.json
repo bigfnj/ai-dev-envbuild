@@ -1079,9 +1079,9 @@
     "group": "image",
     "scope": "global",
     "install_method": "pipx",
-    "detect": "command -v rembg",
+    "detect": "rembg --version",
     "status": "core",
-    "notes": "AI background removal (u2net, ONNX; no GPU required; model ~170 MB downloads on first use)",
+    "notes": "AI background removal (u2net, ONNX Runtime CPU backend; no GPU required; model ~170 MB downloads on first use)",
     "compat_requires": [],
     "source_repo": ""
   },

@@ -5,6 +5,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.2] — 2026-06-25
+
+### Fixed
+
+- `image`: `rembg` now installs with the `[cpu]` extra so the ONNX Runtime backend
+  (`onnxruntime`) is present. Previously `rembg[cli]` installed the CLI but left it
+  unrunnable ("No onnxruntime backend found"). The install guard and the manifest `detect`
+  now use `rembg --version` (which exits non-zero without a backend), so a backend-less
+  install self-heals on re-bootstrap (`--force`) and fails the `smoke-test` gate instead of
+  silently passing a `command -v rembg` check. Fallback `catalog.json` synced to match.
+
 ## [1.9.1] — 2026-06-23
 
 ### Added
