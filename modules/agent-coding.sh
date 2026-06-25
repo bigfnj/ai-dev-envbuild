@@ -129,18 +129,48 @@ agent_coding_ollama() {
         log_skip "ollama already installed ($(ollama --version 2>/dev/null | head -1))"
         return 0
     fi
-    if is_dry_run; then log_info "[DRY-RUN] would install ollama"; return 0; fi
-    log_info "installing ollama (upstream .deb)"
-    local url="https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.deb"
-    local deb; deb="$(mktemp --suffix=.deb)"
-    if curl -fsSL "$url" -o "$deb"; then
-        sudo dpkg -i "$deb" >/dev/null 2>&1 || sudo apt-get install -f -y
-        log_ok "ollama installed"
-    else
+    if is_dry_run; then log_info "[DRY-RUN] would install ollama (tar.zst)"; return 0; fi
+
+    # zstd required for extraction (Ollama dropped the .deb in favour of tar.zst)
+    apt_install zstd
+
+    log_info "installing ollama (tar.zst, latest release)"
+    local url="https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst"
+    local tmp; tmp="$(mktemp --suffix=.tar.zst)"
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        rm -f "$tmp"
         log_err "ollama download failed — see https://ollama.com/download/linux"
         return 1
     fi
-    rm -f "$deb"
+    sudo tar -I zstd -xf "$tmp" -C /usr/local
+    rm -f "$tmp"
+
+    # Create system user + groups (what the old .deb post-install script did)
+    if ! id ollama >/dev/null 2>&1; then
+        sudo useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama
+    fi
+    getent group render >/dev/null 2>&1 && sudo usermod -a -G render ollama || true
+    getent group video  >/dev/null 2>&1 && sudo usermod -a -G video  ollama || true
+
+    # Write systemd unit (also handled by the old .deb)
+    sudo tee /etc/systemd/system/ollama.service >/dev/null <<'UNIT'
+[Unit]
+Description=Ollama Service
+After=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/ollama serve
+User=ollama
+Group=ollama
+Restart=always
+RestartSec=3
+Environment="HOME=/usr/share/ollama"
+
+[Install]
+WantedBy=default.target
+UNIT
+    sudo systemctl daemon-reload 2>/dev/null || true
+    log_ok "ollama installed → /usr/local/bin/ollama"
 }
 
 # Ensure the daemon runs as the .deb-provided SYSTEM service (User=ollama, models in
