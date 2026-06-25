@@ -78,7 +78,7 @@ agent_coding_fleet() {
     cat <<'FLEET'
 mistral-small3.2:24b|generalist|15|18000|tools,vision|Mistral Small 3.2 24B (default — vision + structured tools)
 qwen2.5-coder:14b|coder|9|11000|code|Qwen2.5-Coder 14B (fast chat/edit; tool calls not Ollama-parsed)
-qwen3-vl:8b|vision|6|8000|tools,vision,thinking|Qwen3-VL 8B (vision + tools + thinking)
+qwen3-vl:4b|vision|3|4000|tools,vision,thinking|Qwen3-VL 4B (vision + tools + thinking; fits 8 GB VRAM fully on GPU)
 qwen3-coder:30b|coder-agent|18|22000|tools|Qwen3-Coder 30B-A3B (best agentic coder; load-on-demand)
 qwen3:30b-a3b-thinking-2507-q4_K_M|reasoning|19|22000|tools,thinking|Qwen3 30B-A3B Thinking (reasoning + code; load-on-demand)
 qwen2.5-coder:1.5b-base|autocomplete|1|2000|insert|Qwen2.5-Coder 1.5B Base (FIM autocomplete; always-resident)
@@ -114,8 +114,8 @@ agent_coding_model_name_for_tag() {
 agent_coding_model_tag() {
     local vram_mb="${1:-0}"
     if   [ "$vram_mb" -ge 18000 ]; then echo "mistral-small3.2:24b"
-    elif [ "$vram_mb" -ge 8000 ];  then echo "qwen3-vl:8b"
-    else                                 echo "qwen3-vl:8b"
+    elif [ "$vram_mb" -ge 4000 ];  then echo "qwen3-vl:4b"
+    else                                 echo "qwen3-vl:4b"
     fi
 }
 
