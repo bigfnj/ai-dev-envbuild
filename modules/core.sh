@@ -50,7 +50,7 @@ core_packages() {
         tmux entr socat htop btop ncdu duf shellcheck shfmt \
         age direnv just \
         gh hyperfine time \
-        sshpass expect
+        sshpass expect sshfs
     # NOTE: tokei (LOC counter) is intentionally NOT here. It's a Rust crate and
     # is only in Debian trixie apt — not Ubuntu's repos — so apt-installing it
     # aborted the whole run on Ubuntu/WSL. It's installed via cargo in the
@@ -138,6 +138,7 @@ core_record_manifest() {
         manifest_add "$name" "$bin" "core" "global" "apt" "$detect" "core" ""
     done
     if has sshpass; then manifest_add sshpass sshpass core global apt "sshpass -V" core "non-interactive SSH password auth"; fi
+    if has sshfs;   then manifest_add sshfs   sshfs   core global apt "sshfs --version" core "mount remote filesystems over SSH via FUSE"; fi
     if has expect;  then manifest_add expect  expect  core global apt "expect -version"    core "scripted interactive CLI automation"; fi
     if has sops;    then manifest_add sops    sops    core global github-deb "sops --version" core "encrypted YAML/JSON/env files; pairs well with age recipients" "age" "getsops/sops"; fi
     if has qmake6;  then manifest_add qt6-base-dev qmake6 core global apt "qmake6 --version" core "Qt6 dev headers + CMake integration; required for Qt6 CMake projects"; fi
