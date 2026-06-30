@@ -66,6 +66,7 @@ GPU path summary:
 
 GUIDE
 
+        optional_gpu_whisper_guide
         optional_gpu_anime_guide "$vram_mb"
 
         if is_wsl; then
@@ -285,6 +286,18 @@ SHIM
 # VRAM-aware guide for anime generation model downloads. Called from
 # optional_gpu_install() when a GPU is present. Presence recorders below
 # pick them up once cached; re-run ./bootstrap.sh --only optional-gpu to register.
+# faster-whisper is deployed as a project service on Elsewhere (not the local
+# machine), so this module only documents the setup — no local install is done.
+optional_gpu_whisper_guide() {
+    log_info "faster-whisper transcription service (Elsewhere GPU — ~/faster-whisper-svc/):"
+    log_info "  Model : large-v3 (float16, CUDA) — ~30-40× realtime on RTX 4090"
+    log_info "  Port  : 8990 (systemd faster-whisper.service, auto-starts on boot)"
+    log_info "  Tunnel: open via slide2html/start-kb.sh (SSH -L 8990:localhost:8990 elsewhere)"
+    log_info "  Deps  : faster-whisper fastapi uvicorn python-multipart (pip, in ~/faster-whisper-svc/venv)"
+    log_info "          LD_LIBRARY_PATH=/usr/local/lib/ollama/cuda_v12 set in the systemd unit"
+    log_info "  Use   : drop A/V files in slide2html/intake/ then uv run intake.py --auto"
+}
+
 optional_gpu_anime_guide() {
     local vram_mb="${1:-0}"
     log_info "anime generation models (VRAM-tiered; download then re-run --only optional-gpu to register):"
